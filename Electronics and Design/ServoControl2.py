@@ -28,7 +28,7 @@ def set_angle(angle):
     #pi.set_servo_pulsewidth(servo_pin, pulse_width)
 
 try:
-    angle = int(input("Enter a value between 135 to 45: "))
+    angle = float(input("Enter a value between 135 to 45: "))
     angle = angle - 90
     set_angle(angle)
     time.sleep(1)
