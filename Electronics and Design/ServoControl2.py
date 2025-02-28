@@ -1,6 +1,7 @@
 #import pigpio
 import math
 import time
+from scipy.optimize import fsolve
 
 servo_pin = 18
 r_u = 0.85
@@ -10,10 +11,16 @@ h_l = 2.302372
 
 #pi = pigpio.pi()
 #pi.set_mode(servo_pin, pigpio.OUTPUT)
-
+'''
 def angle_upper(angle):
     phi_rad_u = math.asin(r_u*math.sin(angle*math.pi/180)/math.sqrt(r_u**2 + h_u**2 - 2*r_u*h_u*math.cos(angle*math.pi/180)))
     phi_deg_u = phi_rad_u * 180/math.pi
+    return phi_deg_u
+    '''
+
+def angle_upper(angle):
+    phi_rad_u = math.sin(r_u*math.asin(angle*math.pi/180)/math.sqrt(r_u**2 + h_u**2 - 2*r_u*h_u*math.acos(angle*math.pi/180)))
+    phi_deg_u = phi_rad_u * 180 / math.pi
     return phi_deg_u
 
 def angle_lower(angle):
@@ -29,7 +36,7 @@ def set_angle(angle):
 
 try:
     angle = float(input("Enter a value between 135 to 45: "))
-    angle = angle - 90
+    #angle = angle - 90
     set_angle(angle)
     time.sleep(1)
 
