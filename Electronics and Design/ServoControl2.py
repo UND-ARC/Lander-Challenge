@@ -2,7 +2,8 @@
 import math
 import time
 
-servo_pin = 18
+servo_pin1 = 14
+servo_pin2 = 15
 r_u = 0.85
 h_u = 4.160360
 r_l = 0.47
@@ -25,14 +26,15 @@ while(j <= 45):
     j = j + 1/900
 
 #pi = pigpio.pi()
-#pi.set_mode(servo_pin, pigpio.OUTPUT)
+#pi.set_mode(servo_pin1, pigpio.OUTPUT)
+#pi.set_mode(servo_pin2, pigpio.OUTPUT)
 
 def angle_upper(angle):     
-    found = -45 + 1/900*min(range(len(u)), key = lambda i: abs(u[i]-angle)) #finds closest index that contains the angle, then converts it
+    found = -45 + 90 + 1/900*min(range(len(u)), key = lambda i: abs(u[i]-angle)) #finds closest index that contains the angle, then converts it
     return round(found, 2)  #rounds to second decimal, as the rest is unneccesary
 
 def angle_lower(angle):
-    found = -45 + 1/900*min(range(len(l)), key = lambda i: abs(l[i]-angle)) #finds closest index that contains the angle, then converts it
+    found = -45 + 90 + 1/900*min(range(len(l)), key = lambda i: abs(l[i]-angle)) #finds closest index that contains the angle, then converts it
     return round(found, 2)  #rounds to second decimal, as the rest is unneccesary
 
 def set_angle(phi_upper, phi_lower):    #controls servo motion
@@ -40,8 +42,10 @@ def set_angle(phi_upper, phi_lower):    #controls servo motion
     angle2 = angle_lower(phi_lower)
     print("The upper angle is:", angle1)
     print("The lower angle is:", angle2)
-    #pulse_width = int(angle1/180*2000 + 500)
-    #pi.set_servo_pulsewidth(servo_pin, pulse_width)
+    #pulse_width1 = int(angle1/180*2000 + 500)
+    #pi.set_servo_pulsewidth(servo_pin1, pulse_width1)
+    #pulse_width2 = int(angle2/180*2000 + 500)
+    #pi.set_servo_pulsewidth(servo_pin2, pulse_width2)
 
 try:
     phi_upper = float(input("Enter a value between 9.58 to -9.58 for the upper servo: "))   #tests servo motion by asking for angles
