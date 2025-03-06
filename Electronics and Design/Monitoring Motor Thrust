@@ -1,10 +1,19 @@
 import time
 import pigpio
+from hx711 import HX711
 
 
 ESC = 14  # Connect the ESC in this GPIO pin 
 ESC1 = 15
 
+hx711 = HX711(
+            dout_pin=5,
+            pd_sck_pin=6,
+            channel='A',
+            gain=64
+        )
+
+hx711.reset() 
 
 pi = pigpio.pi()
 pi.set_servo_pulsewidth(ESC, 0) 
