@@ -2,11 +2,13 @@ import time
 import pigpio
 
 
-ESC = 4  # Connect the ESC in this GPIO pin 
+ESC = 14  # Connect the ESC in this GPIO pin 
+ESC1 = 15
 
 
 pi = pigpio.pi()
 pi.set_servo_pulsewidth(ESC, 0) 
+pi.set_servo_pulsewidth(ESC1, 0) 
 
 
 max_value = 2000  # change this if your ESC's max value is different or leave it be
@@ -20,6 +22,7 @@ def manual_drive():
     print("You have selected manual option so give a value between 0 and your max value")    
     while True:
         inp = input()
+        inp1 = input()
         if inp == "stop":
             stop()
             break
@@ -31,6 +34,7 @@ def manual_drive():
             break    
         else:
             pi.set_servo_pulsewidth(ESC, int(inp))
+            pi.set_servo_pulsewidth(ESC1, int(inp1))
                 
 def calibrate():
     pi.set_servo_pulsewidth(ESC, 0)
