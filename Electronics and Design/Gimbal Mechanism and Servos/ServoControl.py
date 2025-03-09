@@ -1,3 +1,6 @@
+#This code is no longer used as the pigpio library is more accurate
+
+
 import RPi.GPIO as GPIO
 import time
 
