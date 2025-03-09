@@ -1,4 +1,4 @@
-#import pigpio
+import pigpio
 import math
 import time
 
@@ -25,9 +25,9 @@ while(j <= 45):
     l.append(phi_deg_l)
     j = j + 1/900
 
-#pi = pigpio.pi()
-#pi.set_mode(servo_pin1, pigpio.OUTPUT)
-#pi.set_mode(servo_pin2, pigpio.OUTPUT)
+pi = pigpio.pi()
+pi.set_mode(servo_pin1, pigpio.OUTPUT)
+pi.set_mode(servo_pin2, pigpio.OUTPUT)
 
 def angle_upper(angle):     
     found = -45 + 90 + 1/900*min(range(len(u)), key = lambda i: abs(u[i]-angle)) #finds closest index that contains the angle, then converts it
@@ -40,17 +40,50 @@ def angle_lower(angle):
 def set_angle(phi_upper, phi_lower):    #controls servo motion
     angle1 = angle_upper(phi_upper)
     angle2 = angle_lower(phi_lower)
-    print("The upper angle is:", angle1)
-    print("The lower angle is:", angle2)
-    #pulse_width1 = int(angle1/180*2000 + 500)
-    #pi.set_servo_pulsewidth(servo_pin1, pulse_width1)
-    #pulse_width2 = int(angle2/180*2000 + 500)
-    #pi.set_servo_pulsewidth(servo_pin2, pulse_width2)
+    #print("The upper angle is:", angle1)
+    #print("The lower angle is:", angle2)
+    pulse_width1 = int(angle1/180*2000 + 500)
+    pi.set_servo_pulsewidth(servo_pin1, pulse_width1)
+    pulse_width2 = int(angle2/180*2000 + 500)
+    pi.set_servo_pulsewidth(servo_pin2, pulse_width2)
 
 try:
-    phi_upper = float(input("Enter a value between 9.58 to -9.58 for the upper servo: "))   #tests servo motion by asking for angles
-    phi_lower = float(input("Enter a value between 9.58 to -9.58 for the lower servo: "))
-    set_angle(phi_upper, phi_lower)
+    
+    y = 0.2
+    #while(True):
+        #phi_upper = float(input("Enter a value between 9.58 to -9.58 for the upper servo: "))   #tests servo motion by asking for angles
+        #phi_lower = float(input("Enter a value between 9.58 to -9.58 for the lower servo: "))
+    while(y <= 0.8):
+        print("Interval:", y)
+        x = -9.58
+        time.sleep(0.5)
+        while(x<=9.58):
+            phi_upper = x
+            phi_lower = 9.58
+            set_angle(phi_upper, phi_lower)
+            #time.sleep(0.1)
+            x += y
+        while(x>=-9.58):
+            phi_upper = 9.58
+            phi_lower = x
+            set_angle(phi_upper, phi_lower)
+            #time.sleep(0.1)
+            x -= y
+        x = 9.58
+        while(x>=-9.58):
+            phi_upper = x
+            phi_lower = -9.58
+            set_angle(phi_upper, phi_lower)
+            #time.sleep(0.1)
+            x -= y
+        while(x<=9.58):
+            phi_upper = -9.58
+            phi_lower = x
+            set_angle(phi_upper, phi_lower)
+            #time.sleep(0.1)
+            x += y
+        y = round((y + 0.1), 1)
+    set_angle(0, 0)
     time.sleep(1)
 
 except KeyboardInterrupt:
