@@ -1,0 +1,2 @@
+This github page is focused solely on the code behind ARC's self landing electric rocket for the Collegiate Propulsive Lander Challenge.
+This includes code for the gimbal mechanism, motor, sensors, and the code from the various libraries used.
