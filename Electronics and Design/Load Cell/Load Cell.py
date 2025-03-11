@@ -14,7 +14,7 @@ startTime = time.perf_counter()
 hx711 = HX711(5, 6)
 hx711.reset()   # Before we start, reset the HX711 (not obligate)
 hx711.zero()
-hx711.set_scale_ratio((100--300)/282)
+hx711.set_scale_ratio(98500/282)
 
 try:
     while(time.perf_counter() - startTime < 20):
