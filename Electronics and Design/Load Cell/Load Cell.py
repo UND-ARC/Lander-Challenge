@@ -11,16 +11,18 @@ weights = []
 
 startTime = time.perf_counter()
 
-try:
-    hx711 = HX711(5, 6)
+hx711 = HX711(5, 6)
+hx711.reset()   # Before we start, reset the HX711 (not obligate)
+hx711.zero()
+hx711.set_scale_ratio((100--300)/282)
 
-    hx711.zero()   # Before we start, reset the HX711 (not obligate)
+try:
     while(time.perf_counter() - startTime < 20):
-        read = hx711.get_data_mean()
+        read = round(hx711.get_weight_mean(3), 2)
         cTime = round(time.perf_counter() - startTime, 2)
         print("Weight:", read, "g", "Time:", cTime)
         times.append(cTime)
-        weights.append(read/1000)
+        weights.append(read)
         #time.sleep(1)
         
 finally:
