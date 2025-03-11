@@ -23,6 +23,10 @@ void loop() {
     timer = millis();
     Serial.print("Time: ");
     Serial.print(timer/1000, 3);
+    if (timer < 10000)
+    {
+      Serial.print(" ");
+    }
     Serial.print(" \t");
     Serial.print("Weight: ");
     read = scale.get_units();
