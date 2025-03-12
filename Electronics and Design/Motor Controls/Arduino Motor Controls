@@ -1,0 +1,24 @@
+#include <Servo.h>
+
+Servo ESC;
+Servo ESC1;
+int angle = 0;
+
+void setup() {
+  // put your setup code here, to run once:
+  ESC.attach(9, 1000, 2000);
+  ESC1.attach(10, 1000, 2000);
+}
+
+void loop() {
+  ESC.write(angle);
+  ESC1.write(angle);
+  // put your main code here, to run repeatedly:
+  /*
+  for (int i = 0; i <= 180; i++)
+  {
+    ESC.write(i);
+    delay(100);
+  }
+*/
+}
