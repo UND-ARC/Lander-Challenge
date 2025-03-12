@@ -26,7 +26,7 @@ void setup() {
 }
 
 void loop() {
-  if (timer < 168000)
+  if (timer < 8700)
   {
     timer = millis();
     Serial.print("Time: ");
@@ -46,6 +46,26 @@ void loop() {
     Serial.println(angle);
     angle++;
     //delay(1000);
+  }
+  else if (timer < 16970)
+  {
+    timer = millis();
+    Serial.print("Time: ");
+    Serial.print(timer/1000, 3);
+    if (timer < 10000)
+    {
+      Serial.print(" ");
+    }
+    Serial.print(" \t");
+    Serial.print("Weight: ");
+    ESC.write(angle);
+    ESC1.write(angle);
+    read = scale.get_units();
+    Serial.print(read);
+    Serial.print("                            ");
+    Serial.print("Angle: ");
+    Serial.println(angle);
+    angle--;
   }
   else
   {
