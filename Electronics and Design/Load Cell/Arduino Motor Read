@@ -1,0 +1,58 @@
+#include <Arduino.h>
+#include "HX711.h"
+#include <Servo.h>
+
+Servo ESC;
+Servo ESC1;
+int angle = 0;
+
+// HX711 circuit wiring
+float read;
+const int LOADCELL_DOUT_PIN = 2;
+const int LOADCELL_SCK_PIN = 3;
+float timer = 0;
+
+HX711 scale;
+
+void setup() {
+  ESC.attach(9, 1000, 2000);
+  ESC1.attach(10, 1000, 2000);
+
+  Serial.begin(9600);
+ 
+  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+  scale.set_scale(110700/282);                      // this value is obtained by calibrating the scale with known weights; see the README for details
+  scale.tare();  
+}
+
+void loop() {
+  if (timer < 168000)
+  {
+    timer = millis();
+    Serial.print("Time: ");
+    Serial.print(timer/1000, 3);
+    if (timer < 10000)
+    {
+      Serial.print(" ");
+    }
+    Serial.print(" \t");
+    Serial.print("Weight: ");
+    ESC.write(angle);
+    ESC1.write(angle);
+    read = scale.get_units();
+    Serial.print(read);
+    Serial.print("                            ");
+    Serial.print("Angle: ");
+    Serial.println(angle);
+    angle++;
+    //delay(1000);
+  }
+  else
+  {
+    angle = 0;
+    ESC.write(angle);
+    ESC.write(angle);
+    return;
+  }
+  
+}
