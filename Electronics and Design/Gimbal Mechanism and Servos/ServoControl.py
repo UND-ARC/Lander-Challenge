@@ -5,7 +5,8 @@ import RPi.GPIO as GPIO
 import time
 
 # Define the GPIO pin
-SERVO_PIN = 18
+SERVO_PIN = 14
+angle = 0
 
 # Setup GPIO
 GPIO.setmode(GPIO.BCM)
@@ -25,12 +26,12 @@ def set_angle(angle):
     pwm.ChangeDutyCycle(0)
 
 try:
-    while True:
-        angle = int(input("Enter angle (0-180): "))
-        if 0 <= angle <= 180:
-            set_angle(angle)
-        else:
-            print("Invalid angle. Enter a value between 0 and 180.")
+    while angle <= 180:
+        set_angle(angle)
+        print("Angle:", angle)
+        time.sleep(0.1)
+        angle = angle + 1
+        
 except KeyboardInterrupt:
     print("Exiting...")
 finally:
