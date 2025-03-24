@@ -20,12 +20,12 @@ def read_distance():
         print(f"Error reading from sensor: {e}")
         return None
 next = ''
-with open('LIDARout.txt', 'w') as output:    
+with open('LIDARfar.txt', 'w') as output:    
     while next == '':
-        distance = read_distance()
+        distance = round(read_distance(), 3)
         if (distance != None):
             print(f"Distance: {distance:.3f} m")
         else:
             print("Invalid reading")
-        output.write(str(round(distance, 3)) + "\n")
+        output.write("Meters: " + str(distance) + " Feet: " + str(distance*3.28) + " Inches: " + str(distance*3.28/12) + "\n")
         next = input('Continue? ')
