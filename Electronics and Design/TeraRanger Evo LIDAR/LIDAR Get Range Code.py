@@ -19,11 +19,13 @@ def read_distance():
     except Exception as e:
         print(f"Error reading from sensor: {e}")
         return None
-    
-while True:
-    distance = read_distance()
-    if (distance != None):
-        print(f"Distance: {distance:.3f} m")
-    else:
-        print("Invalid reading")
-    time.sleep(0.1)
+next = ''
+with open('LIDARout.txt', 'w') as output:    
+    while next == '':
+        distance = read_distance()
+        if (distance != None):
+            print(f"Distance: {distance:.3f} m")
+        else:
+            print("Invalid reading")
+        output.write(str(round(distance, 3)) + "\n")
+        next = input('Continue? ')

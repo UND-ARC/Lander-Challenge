@@ -30,6 +30,16 @@ def measure_distance():
     
     return distance
 
+next = ''
+with open("ULTRASONICout.txt", 'w') as output:
+    while(next == ''):
+        distance = measure_distance()
+        inch = round(distance / 2.54, 2)
+        feet = round(inch / 12, 2)
+        print("Distance:", distance, "cm", inch, "in", feet, "ft")
+        output.write("Distance: " + str(distance) + "cm " + str(inch) + "in " + str(feet) + "ft\n")
+        next = input("Continue? ")
+'''
 try:
     while True:
         distance = measure_distance()
@@ -41,3 +51,4 @@ try:
 except KeyboardInterrupt:
     print("Measurement stopped")
     GPIO.cleanup()
+'''
