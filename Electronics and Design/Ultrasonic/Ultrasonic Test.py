@@ -33,11 +33,11 @@ def measure_distance():
 next = ''
 with open("ULTRASONICout.txt", 'w') as output:
     while(next == ''):
-        distance = measure_distance()
-        inch = round(distance / 2.54, 2)
+        distance = round(measure_distance()/100, 2)
+        inch = round(distance * 39.37, 2)
         feet = round(inch / 12, 2)
-        print("Distance:", distance, "cm", inch, "in", feet, "ft")
-        output.write("Distance: " + str(distance) + "cm " + str(inch) + "in " + str(feet) + "ft\n")
+        print("Distance:", distance, "m", inch, "in", feet, "ft")
+        output.write("Distance: " + str(distance) + "m " + str(inch) + "in " + str(feet) + "ft\n")
         next = input("Continue? ")
 '''
 try:
