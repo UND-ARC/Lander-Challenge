@@ -4,7 +4,7 @@ import time
 # Define the I2C bus (use 1 for Raspberry Pi)
 I2C_BUS = 1
 OLD_ADDRESS = 0x31  # Default I2C address of the TerraRanger Evo
-NEW_ADDRESS = 0x40  # Replace with the desired new address (0x08 - 0x77)
+NEW_ADDRESS = 0x30  # Replace with the desired new address (0x08 - 0x77)
 
 # Register address for changing the I2C address (consult manufacturer datasheet)
 CHANGE_ADDRESS_CMD = [0xA2, NEW_ADDRESS]  # Hypothetical command; check documentation
