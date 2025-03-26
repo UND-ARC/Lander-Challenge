@@ -1,48 +1,33 @@
-import smbus
+import smbus2
 import time
 
-I2C_BUS = 1  # Raspberry Pi's I2C bus
-CURRENT_ADDRESS = 0x31  # Default Teraranger Evo I2C address
-NEW_ADDRESS = 0x30  # Change this to the desired address (7-bit format)
+# Define the I2C bus (use 1 for Raspberry Pi)
+I2C_BUS = 1
+OLD_ADDRESS = 0x31  # Default I2C address of the TerraRanger Evo
+NEW_ADDRESS = 0x40  # Replace with the desired new address (0x08 - 0x77)
 
-bus = smbus.SMBus(I2C_BUS)
+# Register address for changing the I2C address (consult manufacturer datasheet)
+CHANGE_ADDRESS_CMD = [0xA2, NEW_ADDRESS]  # Hypothetical command; check documentation
 
-def change_i2c_address(current_addr, new_addr):
+def change_i2c_address(bus, old_addr, new_addr):
     try:
-        # Convert to valid range (7-bit I2C address)
-        if new_addr < 0x08 or new_addr > 0x77:
-            print("Error: Address out of valid range (0x08 - 0x77)")
-            return
-        
-        # Send the new address command (Terabee-specific protocol)
-        COMMAND_SET_I2C_ADDR = [0x00, new_addr << 1]  # New address shifted left for 8-bit format
-        bus.write_i2c_block_data(current_addr, 0x00, COMMAND_SET_I2C_ADDR)
+        print(f"Connecting to device at I2C address: 0x{old_addr:X}")
 
-        print(f"Sent command to change I2C address to: {hex(new_addr)}")
+        # Open I2C bus
+        with smbus2.SMBus(bus) as smbus:
+            # Send the address change command
+            smbus.write_i2c_block_data(old_addr, CHANGE_ADDRESS_CMD[0], CHANGE_ADDRESS_CMD[1:])
+            print(f"Sent command to change address to 0x{new_addr:X}")
 
-        time.sleep(1)  # Give time for the change to take effect
+            # Wait for changes to take effect
+            time.sleep(1)
 
-        # Verify the change
-        new_detected = False
-        for _ in range(3):
-            time.sleep(0.5)
-            detected_addresses = []
-            for addr in range(0x08, 0x78):
-                try:
-                    bus.read_byte(addr)
-                    detected_addresses.append(hex(addr))
-                except:
-                    pass
-            if hex(new_addr) in detected_addresses:
-                print(f"New address {hex(new_addr)} detected!")
-                new_detected = True
-                break
-
-        if not new_detected:
-            print("Error: Address change not successful. Power cycle the sensor and try again.")
+            # Verify new address works
+            smbus.write_quick(new_addr)
+            print(f"Address successfully changed to 0x{new_addr:X}")
 
     except Exception as e:
-        print(f"Error changing address: {e}")
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
-    change_i2c_address(CURRENT_ADDRESS, NEW_ADDRESS)
+    change_i2c_address(I2C_BUS, OLD_ADDRESS, NEW_ADDRESS)
