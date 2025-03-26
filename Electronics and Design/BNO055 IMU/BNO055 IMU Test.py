@@ -11,7 +11,7 @@ import adafruit_bno055
 # Use `ls /dev/i2c*` to find out what i2c devices are connected
 
 i2c = I2C(1)  # Device is /dev/i2c-1
-sensor = adafruit_bno055.BNO055_I2C(i2c, 0x28)
+sensor = adafruit_bno055.BNO055_I2C(i2c, 0x28)  #can add second IMU with address 0x29
 
 last_val = 0xFFFF
 
