@@ -11,7 +11,7 @@ import adafruit_bno055
 # Use `ls /dev/i2c*` to find out what i2c devices are connected
 
 i2c = I2C(1)  # Device is /dev/i2c-1
-sensor = adafruit_bno055.BNO055_I2C(i2c)
+sensor = adafruit_bno055.BNO055_I2C(i2c, 0x28)
 
 last_val = 0xFFFF
 
@@ -42,19 +42,19 @@ def quartenion_to_euler(x, y, z, w):
     yaw_z = math.atan2(t3, t4)
 
     return roll_x*180/math.pi, pitch_y*180/math.pi, yaw_z*180/math.pi
-next = ''
-with open('IMUout_Yaw.txt', 'w') as output:
-    while next == '':
+#next = ''
+#with open('IMUout_Yaw.txt', 'w') as output:
+#    while next == '':
         #print("Accelerometer (m/s^2): {}".format(sensor.acceleration))
         #print("Magnetometer (microteslas): {}".format(sensor.magnetic))
         #print("Gyroscope (rad/sec): {}".format(sensor.gyro))
         #print("Euler angle: {}".format(sensor.euler))
-        quartenion = sensor.quaternion
-        roll, pitch, yaw= quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])
-        print("Roll (x-axis):", round(roll, 2), "Pitch (y-axis):", round(pitch, 2), "Yaw (z-axis):", round(yaw, 2))
+quartenion = sensor.quaternion
+roll, pitch, yaw= quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])
+print("Roll (x-axis):", round(roll, 2), "Pitch (y-axis):", round(pitch, 2), "Yaw (z-axis):", round(yaw, 2))
         #print("Linear acceleration (m/s^2): {}".format(sensor.linear_acceleration))
         #print("Gravity (m/s^2): {}".format(sensor.gravity))
-        print()
-        output.write("Roll (x-axis): " + str(round(roll, 2)) + " Pitch (y-axis): " + str(round(pitch, 2)) + " Yaw (z-axis): " + str(round(yaw, 2)) + "\n")
-        next = input("Continue? ")
+print()
+       # output.write("Roll (x-axis): " + str(round(roll, 2)) + " Pitch (y-axis): " + str(round(pitch, 2)) + " Yaw (z-axis): " + str(round(yaw, 2)) + "\n")
+        #next = input("Continue? ")
 
