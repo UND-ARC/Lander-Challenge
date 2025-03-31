@@ -49,12 +49,15 @@ def quartenion_to_euler(x, y, z, w):
         #print("Magnetometer (microteslas): {}".format(sensor.magnetic))
         #print("Gyroscope (rad/sec): {}".format(sensor.gyro))
         #print("Euler angle: {}".format(sensor.euler))
-quartenion = sensor.quaternion
-roll, pitch, yaw= quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])
-print("Roll (x-axis):", round(roll, 2), "Pitch (y-axis):", round(pitch, 2), "Yaw (z-axis):", round(yaw, 2))
-        #print("Linear acceleration (m/s^2): {}".format(sensor.linear_acceleration))
-        #print("Gravity (m/s^2): {}".format(sensor.gravity))
-print()
-       # output.write("Roll (x-axis): " + str(round(roll, 2)) + " Pitch (y-axis): " + str(round(pitch, 2)) + " Yaw (z-axis): " + str(round(yaw, 2)) + "\n")
-        #next = input("Continue? ")
+while True:
+    quartenion = sensor.quaternion
+    roll, pitch, yaw= quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])
+    print("Roll (x-axis):", round(roll, 2), "Pitch (y-axis):", round(pitch, 2), "Yaw (z-axis):", round(yaw, 2))
+    print("Euler angle: {}".format(sensor.euler))
+                #print("Linear acceleration (m/s^2): {}".format(sensor.linear_acceleration))
+                #print("Gravity (m/s^2): {}".format(sensor.gravity))
+    print()
+    time.sleep(2)
+            # output.write("Roll (x-axis): " + str(round(roll, 2)) + " Pitch (y-axis): " + str(round(pitch, 2)) + " Yaw (z-axis): " + str(round(yaw, 2)) + "\n")
+                #next = input("Continue? ")
 
