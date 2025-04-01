@@ -33,7 +33,9 @@ def quartenion_to_euler(x, y, z, w):
     roll_x = math.atan2(t0, t1)
 
     t2 = +2.0*(w*y - z*x)
-    pitch_y = math.asin(t2, math.sqrt(1-t2**2))
+    t2 = +1.0 if t2 > +1.0 else t2
+    t2 = -1.0 if t2 < -1.0 else t2
+    pitch_y = math.asin(t2)
 
     t3 = +2.0*(w*z + x*y)
     t4 = +1.0 - 2.0*(y*y + z*z)
@@ -49,9 +51,12 @@ def quartenion_to_euler(x, y, z, w):
         #print("Euler angle: {}".format(sensor.euler))
 while True:
     quartenion = sensor.quaternion
-    roll, pitch, yaw= quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])
+    Roll, Pitch, Yaw = quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])
+    if(Roll != None or Pitch != None or Yaw != None):
+        roll, pitch, yaw = Roll, Pitch, Yaw 
+    #print("Roll (x-axis):", round(quartenion[0], 2), "Pitch (y-axis):", round(quartenion[1], 2), "Yaw (z-axis):", round(quartenion[2], 2), "W:", round(quartenion[3], 2))
     print("Roll (x-axis):", round(roll, 2), "Pitch (y-axis):", round(pitch, 2), "Yaw (z-axis):", round(yaw, 2))
-    print("Euler angle: {}".format(sensor.euler))
+    #print("Euler angle: {}".format(sensor.euler))
                 #print("Linear acceleration (m/s^2): {}".format(sensor.linear_acceleration))
                 #print("Gravity (m/s^2): {}".format(sensor.gravity))
     print()

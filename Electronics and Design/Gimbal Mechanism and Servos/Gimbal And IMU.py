@@ -17,8 +17,8 @@ sensor = adafruit_bno055.BNO055_I2C(i2c, 0x28)                          # Can ad
 
 last_val = 0xFFFF
 
-servo_pin1 = 14
-servo_pin2 = 15
+servo_pin1 = 14                                                         # Upper Gimbal (Pitch)
+servo_pin2 = 15                                                         # Lower Gimbal (Yaw)
 r_u = 0.85
 h_u = 4.160360
 r_l = 0.47
@@ -84,6 +84,8 @@ def main():
         roll, pitch, yaw= quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])
         time.sleep(0.1)
         num += 1
+    rollControl = roll
+    yawControl = yaw
     i = -45                                                             # Uses Christian's formula to store angles in a list
     while (i <= 45):                 
         phi_rad_u = math.asin(r_u*math.sin(i*math.pi/180)/math.sqrt(r_u**2 + h_u**2 - 2*r_u*h_u*math.cos(i*math.pi/180)))
@@ -98,10 +100,10 @@ def main():
         l.append(phi_deg_l)
         j = j + 1/900
     
-    pidPitch = PID(1, 0.0, 0.0, setpoint = pitch)                       # Initializing the PID for Pitch control
+    pidPitch = PID(.75, 0.0, 0.0, setpoint = pitch)                       # Initializing the PID for Pitch control
     pidPitch.sample_time = .05
 
-    pidYaw = PID(0.1, 0.0, 0.0, setpoint = yaw)                      # Initializing the PID for Yaw control
+    pidYaw = PID(0.25, 0.0, 0.0, setpoint = yaw)                      # Initializing the PID for Yaw control
     pidYaw.sample_time = .05
     
     try:
@@ -109,15 +111,24 @@ def main():
             quartenion = sensor.quaternion                               # Getting data from IMU
             Roll, Pitch, Yaw = quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])
             if(Roll != None or Pitch != None or Yaw != None):
-                roll, pitch, yaw = Roll, Pitch, Yaw
+                roll = Roll
+                if not (abs(roll) < 20 or abs(roll) > 160):
+                    yaw = Yaw
+                if not (abs(roll) > 65 and abs(roll < 120)):           
+                    pitch = Pitch                                                                                                                                                                           
             
-            controlPitch = pidPitch(pitch)                              # Setting control for Pitch
+            if (abs(roll) > abs(rollControl)):
+                controlPitch = pidPitch(pitch)                              # Setting control for Pitch
+            else:
+                controlPitch = 0 - pidPitch(pitch)
             #controlYaw = pidYaw(yaw)
             
-            if (yaw < 0):                                               # Determine relative distance from start
-                controlYaw = pidYaw(yaw)                                # Positive control for Yaw
+            if (yaw < yawControl):                                               # Determine relative distance from start
+                controlYaw = pidYaw((yawControl + abs(yaw - yawControl)))
+            elif(yaw < 0 and yaw > yawControl):
+                controlYaw = 0 - pidYaw(yaw)                                 # Positive control for Yaw
             else:
-                controlYaw = 0 - pidYaw(abs(yaw))                       # Negative control for Yaw'
+                controlYaw = pidYaw(-yaw)                      # Negative control for Yaw'
             
             
             phi_upper = controlPitch
