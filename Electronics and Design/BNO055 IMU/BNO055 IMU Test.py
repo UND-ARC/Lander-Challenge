@@ -33,9 +33,7 @@ def quartenion_to_euler(x, y, z, w):
     roll_x = math.atan2(t0, t1)
 
     t2 = +2.0*(w*y - z*x)
-    t2 = +1.0 if t2 > +1.0 else t2
-    t2 = -1.0 if t2 < -1.0 else t2
-    pitch_y = math.asin(t2)
+    pitch_y = math.asin(t2, math.sqrt(1-t2**2))
 
     t3 = +2.0*(w*z + x*y)
     t4 = +1.0 - 2.0*(y*y + z*z)
