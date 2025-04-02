@@ -1,4 +1,5 @@
 import time
+import pickle
 import math
 import numpy as np
 from adafruit_extended_bus import ExtendedI2C as I2C
@@ -14,6 +15,17 @@ i2c = I2C(1)  # Device is /dev/i2c-1
 sensor = adafruit_bno055.BNO055_I2C(i2c, 0x28)  #can add second IMU with address 0x29
 
 last_val = 0xFFFF
+
+def load_calibration():
+    try:
+        with open("/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/BNO055 IMU/calibration_data.pkl", "rb") as f:
+            offsets = pickle.load(f)
+            sensor.offsets_magnetometer = offsets[0]
+            sensor.offsets_gyroscope = offsets[1]
+            sensor.offsets_accelerometer = offsets[2]
+        print("Calibration data loaded.")
+    except FileNotFoundError:
+        print("No calibration data found. Perform calibration first.")
 
 def temperature():
     global last_val  # pylint: disable=global-statement
@@ -49,6 +61,7 @@ def quartenion_to_euler(x, y, z, w):
         #print("Magnetometer (microteslas): {}".format(sensor.magnetic))
         #print("Gyroscope (rad/sec): {}".format(sensor.gyro))
         #print("Euler angle: {}".format(sensor.euler))
+load_calibration()
 while True:
     quartenion = sensor.quaternion
     Roll, Pitch, Yaw = quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])

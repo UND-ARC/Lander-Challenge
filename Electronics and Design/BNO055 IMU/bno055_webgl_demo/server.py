@@ -122,7 +122,7 @@ def bno_sse():
         yield "data: {0}\n\n".format(json.dumps(data))
 
 
-@app.before_first_request
+@app.before_request
 def start_bno_thread():
     # Start the BNO thread right before the first request is served.  This is
     # necessary because in debug mode flask will start multiple main threads so

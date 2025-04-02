@@ -21,16 +21,18 @@ class Mode:
     NDOF_MODE = 0x0C
 
 def save_calibration():
-    offsets = sensor.offsets
-    with open("/Electronics and Design\BNO055 IMU/calibration_data.pkl", "wb") as f:
+    offsets = [sensor.offsets_magnetometer, sensor.offsets_gyroscope, sensor.offsets_accelerometer]
+    with open("/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/BNO055 IMU/calibration_data.pkl", "wb") as f:
         pickle.dump(offsets, f)
     print("Calibration data saved.")
 
 def load_calibration():
     try:
-        with open("/Electronics and Design\BNO055 IMU/calibration_data.pkl", "rb") as f:
+        with open("/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/BNO055 IMU/calibration_data.pkl", "rb") as f:
             offsets = pickle.load(f)
-            sensor.offsets = offsets
+            sensor.offsets_magnetometer = offsets[0]
+            sensor.offsets_gyroscope = offsets[1]
+            sensor.offsets_accelerometer = offsets[2]
         print("Calibration data loaded.")
     except FileNotFoundError:
         print("No calibration data found. Perform calibration first.")
@@ -44,8 +46,8 @@ def load_calibration():
 i2c = board.I2C()  # For board.SCL and board.SDA
 #i2c = board.STEMMA_I2C()  # For the built-in STEMMA QT connection
 sensor = adafruit_bno055.BNO055_I2C(i2c)
-#sensor.mode = Mode.NDOF_MODE  # Set the sensor to NDOF_MODE
-sensor.mode = Mode.IMUPLUS_MODE #IMU mode
+sensor.mode = Mode.NDOF_MODE  # Set the sensor to NDOF_MODE
+#sensor.mode = Mode.IMUPLUS_MODE #IMU mode
 
 
 print("Magnetometer: Perform the figure-eight calibration dance.")
@@ -56,7 +58,8 @@ while not sensor.calibration_status[3] == 3:
     print(f"Mag Calib Status: {100 / 3 * sensor.calibration_status[3]:3.0f}%")
     time.sleep(1)
 print("... CALIBRATED")
-time.sleep(1)'
+time.sleep(1)
+
 
 
 print("Accelerometer: Perform the six-step calibration dance.")
