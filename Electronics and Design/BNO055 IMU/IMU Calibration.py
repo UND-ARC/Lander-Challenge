@@ -47,7 +47,7 @@ sensor = adafruit_bno055.BNO055_I2C(i2c)
 #sensor.mode = Mode.NDOF_MODE  # Set the sensor to NDOF_MODE
 sensor.mode = Mode.IMUPLUS_MODE #IMU mode
 
-'''
+
 print("Magnetometer: Perform the figure-eight calibration dance.")
 while not sensor.calibration_status[3] == 3:
     # Calibration Dance Step One: Magnetometer
@@ -57,7 +57,7 @@ while not sensor.calibration_status[3] == 3:
     time.sleep(1)
 print("... CALIBRATED")
 time.sleep(1)'
-'''
+
 
 print("Accelerometer: Perform the six-step calibration dance.")
 while not sensor.calibration_status[2] == 3:
