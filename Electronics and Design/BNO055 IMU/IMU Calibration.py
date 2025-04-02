@@ -22,13 +22,13 @@ class Mode:
 
 def save_calibration():
     offsets = sensor.offsets
-    with open("calibration_data.pkl", "wb") as f:
+    with open("/Electronics and Design\BNO055 IMU/calibration_data.pkl", "wb") as f:
         pickle.dump(offsets, f)
     print("Calibration data saved.")
 
 def load_calibration():
     try:
-        with open("calibration_data.pkl", "rb") as f:
+        with open("/Electronics and Design\BNO055 IMU/calibration_data.pkl", "rb") as f:
             offsets = pickle.load(f)
             sensor.offsets = offsets
         print("Calibration data loaded.")
