@@ -13,6 +13,8 @@ import adafruit_bno055
 
 i2c = I2C(1)  # Device is /dev/i2c-1
 sensor = adafruit_bno055.BNO055_I2C(i2c, 0x28)  #can add second IMU with address 0x29
+#sensor.mode = adafruit_bno055.NDOF_MODE
+#sensor.mode = adafruit_bno055.IMUPLUS_MODE
 
 last_val = 0xFFFF
 
