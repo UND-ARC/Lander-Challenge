@@ -1,5 +1,6 @@
 import time
 import math
+import pickle
 import pigpio
 import numpy as np
 from adafruit_extended_bus import ExtendedI2C as I2C
@@ -14,6 +15,7 @@ from simple_pid import PID
 
 i2c = I2C(1)                                                            # Device is /dev/i2c-1
 sensor = adafruit_bno055.BNO055_I2C(i2c, 0x28)                          # Can add second IMU with address 0x29
+sensor.mode = adafruit_bno055.IMUPLUS_MODE                               #changes mode from default
 
 last_val = 0xFFFF
 
@@ -29,6 +31,17 @@ l = []
 pi = pigpio.pi()
 pi.set_mode(servo_pin1, pigpio.OUTPUT)
 pi.set_mode(servo_pin2, pigpio.OUTPUT)
+
+def load_calibration():
+    try:
+        with open("/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/BNO055 IMU/calibration_data.pkl", "rb") as f:
+            offsets = pickle.load(f)
+            sensor.offsets_magnetometer = offsets[0]
+            sensor.offsets_gyroscope = offsets[1]
+            sensor.offsets_accelerometer = offsets[2]
+        print("Calibration data loaded.")
+    except FileNotFoundError:
+        print("No calibration data found. Perform calibration first.")
 
 def temperature():
     global last_val                                                     # Pylint: disable=global-statement
@@ -79,6 +92,7 @@ def set_angle(phi_upper, phi_lower):                                    # Contro
 
 def main():
     num = 0
+    #load_calibration()    don't calibrate until rest is fixed
     while num < 5:
         quartenion = sensor.quaternion                                      # Getting data from IMU
         roll, pitch, yaw= quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])
