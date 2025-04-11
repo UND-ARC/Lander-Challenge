@@ -92,7 +92,7 @@ def set_angle(phi_upper, phi_lower):                                    # Contro
 
 def main():
     num = 0
-    #load_calibration()    don't calibrate until rest is fixed
+    #load_calibration()    #don't calibrate until rest is fixed
     while num < 5:
         quartenion = sensor.quaternion                                      # Getting data from IMU
         roll, pitch, yaw= quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])
