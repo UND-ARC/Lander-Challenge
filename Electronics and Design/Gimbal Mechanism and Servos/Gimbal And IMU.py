@@ -15,7 +15,7 @@ from simple_pid import PID
 
 i2c = I2C(1)                                                            # Device is /dev/i2c-1
 sensor = adafruit_bno055.BNO055_I2C(i2c, 0x28)                          # Can add second IMU with address 0x29
-sensor.mode = adafruit_bno055.IMUPLUS_MODE                               #changes mode from default
+sensor.mode = adafruit_bno055.IMUPLUS_MODE                               #changes mode from default (Doesn't work for vertical starting)
 
 last_val = 0xFFFF
 
@@ -93,44 +93,46 @@ def set_angle(phi_upper, phi_lower):                                    # Contro
 def main():
     num = 0
     #load_calibration()    #don't calibrate until rest is fixed
-    while num < 5:
+    while num < 5:                                                          # Getting sensor calibrated 
         quartenion = sensor.quaternion                                      # Getting data from IMU
         roll, pitch, yaw= quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])
         time.sleep(0.1)
         num += 1
-    rollControl = roll
-    yawControl = yaw
-    i = -45                                                             # Uses Christian's formula to store angles in a list
+    rollControl = roll                                                      # Assigning start position
+    #print(rollControl)
+    print(yaw)
+    #yawControl = yaw                                                        
+    i = -45                                                                 # Uses Christian's formula to store angles in a list
     while (i <= 45):                 
         phi_rad_u = math.asin(r_u*math.sin(i*math.pi/180)/math.sqrt(r_u**2 + h_u**2 - 2*r_u*h_u*math.cos(i*math.pi/180)))
         phi_deg_u = phi_rad_u * 180/math.pi
         u.append(phi_deg_u)
         i = i + 1/900
 
-    j = -45                                                             # Uses Christian's formula to store angles in a list 
+    j = -45                                                                 # Uses Christian's formula to store angles in a list 
     while(j <= 45):
         phi_rad_l = math.asin(r_l*math.sin(j*math.pi/180)/math.sqrt(r_l**2 + h_l**2 - 2*r_l*h_l*math.cos(j*math.pi/180)))
         phi_deg_l = phi_rad_l * 180/math.pi
         l.append(phi_deg_l)
         j = j + 1/900
     
-    pidPitch = PID(.75, 0.0, 0.0, setpoint = pitch)                       # Initializing the PID for Pitch control
+    pidPitch = PID(.75, 0.0, 0.0, setpoint = pitch)                         # Initializing the PID for Pitch control
     pidPitch.sample_time = .05
 
-    pidYaw = PID(0.25, 0.0, 0.0, setpoint = yaw)                      # Initializing the PID for Yaw control
-    pidYaw.sample_time = .05
-    
+    #pidYaw = PID(0.25, 0.0, 0.0, setpoint = yaw/5)                            # Initializing the PID for Yaw control
+    #pidYaw.sample_time = .05
+    '''
+    STARTING LOOP FOR ROCKET CONTROL
+    '''
     try:
         while True:
             quartenion = sensor.quaternion                               # Getting data from IMU
             Roll, Pitch, Yaw = quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])
             if(Roll != None or Pitch != None or Yaw != None):
                 roll = Roll
-                if not (abs(roll) < 20 or abs(roll) > 160):
-                    yaw = Yaw
-                if not (abs(roll) > 65 and abs(roll < 120)):           
-                    pitch = Pitch                                                                                                                                                                           
-            
+                pitch = Pitch     
+                yaw = Yaw                                                                             
+            '''
             if (abs(roll) > abs(rollControl)):
                 controlPitch = pidPitch(pitch)                              # Setting control for Pitch
             else:
@@ -143,20 +145,27 @@ def main():
                 controlYaw = 0 - pidYaw(yaw)                                 # Positive control for Yaw
             else:
                 controlYaw = pidYaw(-yaw)                      # Negative control for Yaw'
-            
-            
-            phi_upper = controlPitch
-            phi_lower = controlYaw
-            set_angle(phi_upper, phi_lower)                             # Setting gimbal angle
             '''
-            #print("Pitch:", controlPitch)
-            #print("Yaw:", controlYaw)
-            print("Upper Gimbal:", phi_upper)                           # Display gimbal angle
-            print("Lower Gimbal:", phi_lower)
+            controlPitch = pidPitch(pitch)
+            controlLower =  controlPitch * (math.cos(math.pi * (roll - rollControl) / 180))    # Accounting for relative position
+            #controlYaw = pidYaw(yaw) * (math.sin(math.pi * (roll - rollControl + 90) / 180))       # Taken out due to funky motion        
+            controlUpper = controlPitch * (math.sin(math.pi * (roll - rollControl) / 180))
+            
+            phi_lower = controlLower
+            phi_upper = controlUpper
+            set_angle(phi_upper, phi_lower)                             # Setting gimbal angle
+            
+            '''
+            print("Pitch:", pitch)
+            #print("Yaw:", yaw)
+            #print("Upper Gimbal:", phi_upper)                           # Display gimbal angle
+            #print("Lower Gimbal:", phi_lower)
+            print('Roll:', roll)
+            #print("Roll - Rollcontrol:", roll - rollControl)
             print()
             time.sleep(.5)
             '''
-    
+            
     except KeyboardInterrupt:
         pi.stop()
 

@@ -64,6 +64,7 @@ def quartenion_to_euler(x, y, z, w):
         #print("Gyroscope (rad/sec): {}".format(sensor.gyro))
         #print("Euler angle: {}".format(sensor.euler))
 load_calibration()
+print("Mode: (8=relative, 12=Absolute/Default)", sensor.mode)
 while True:
     quartenion = sensor.quaternion
     Roll, Pitch, Yaw = quartenion_to_euler(quartenion[0], quartenion[1], quartenion[2], quartenion[3])
@@ -75,7 +76,7 @@ while True:
                 #print("Linear acceleration (m/s^2): {}".format(sensor.linear_acceleration))
                 #print("Gravity (m/s^2): {}".format(sensor.gravity))
     print()
-    time.sleep(2)
+    time.sleep(.5)
             # output.write("Roll (x-axis): " + str(round(roll, 2)) + " Pitch (y-axis): " + str(round(pitch, 2)) + " Yaw (z-axis): " + str(round(yaw, 2)) + "\n")
                 #next = input("Continue? ")
 
