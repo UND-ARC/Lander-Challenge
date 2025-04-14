@@ -4,7 +4,7 @@ import smbus
 
 
 I2C_BUS = 1
-I2C_ADDRESS = 0x31
+I2C_ADDRESS = 0x30
 
 bus = smbus.SMBus(I2C_BUS)
 
@@ -15,7 +15,7 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(PIN_TRIGGER, GPIO.OUT)
 GPIO.setup(PIN_ECHO, GPIO.IN)
 
-def near_distance():                                            # Ultrasonic Code
+def Ultrasonic():                                               # Ultrasonic Code
     GPIO.output(PIN_TRIGGER, False)
     time.sleep(0.1)
 
@@ -32,10 +32,14 @@ def near_distance():                                            # Ultrasonic Cod
 
     pulse_duration = pulse_end_time - pulse_start_time
     distance = round((pulse_duration * 34300)/2, 3)
+    if (distance > 100):
+        print("Error reading Ultrasonic: Switching to Lidar")
+        LIDAR()
+        distance = LIDAR()
 
     return distance
 
-def far_distance():                                             # LIDAR Code
+def LIDAR():                                                    # LIDAR Code
     try:
         data = bus.read_i2c_block_data(I2C_ADDRESS, 0, 2)
 
@@ -43,7 +47,10 @@ def far_distance():                                             # LIDAR Code
 
         if (distance == 65535):
             return None
-        return round((distance / 1000.0), 3)
+        if (distance == 0):
+            print("Error reading LIDAR: Switching to Ultrasonic")
+            distance = Ultrasonic() * 10
+        return round((distance / 10.0), 3)
 
     except Exception as e:
         print(f"Error reading from sensor: {e}")
@@ -53,21 +60,23 @@ def far_distance():                                             # LIDAR Code
 MAIN CODE BEGINS HERE
 '''
 
-distance = 0.0                                                  # Start by reading Ultrasonic
+distance = LIDAR()                                              # Start by reading LIDAR
 try:
     while True:
         # Measurements Here
-        if (distance > 1):                                      # If over 1 meter, read from LIDAR
-            distance = far_distance()
-        else:
-            distance = near_distance()                          # If distance less than 1 meter, read from Ultrasonic
+        if (distance > 100):                                    # If over 1 meter, read from LIDAR
+            print("Reading LIDAR")
+            distance = LIDAR()
+        else:                                                   # If distance less than 1 meter, read from Ultrasonic
+            print("Reading Ultrasonic")
+            distance = Ultrasonic()
         
         # Converting and printing
         inch = round(distance / 2.54, 2)
         feet = round(inch / 12, 2)
-        print("Distance:", distance, "cm", inch, "in", feet, "ft")
-        time.sleep(1)
+        print("Distance:", distance, "cm", inch, "in", feet, "ft\n")
+        time.sleep(.05)
 
 except KeyboardInterrupt:                                       # Stop code when LCtrl + C is pushed
-    print("Measurement stopped")
+    print("\nMeasurement stopped")
     GPIO.cleanup()
