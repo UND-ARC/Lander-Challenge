@@ -16,8 +16,6 @@ ESC1 = 23
 
 
 pi = pigpio.pi()
-pi.set_servo_pulsewidth(ESC, 0) 
-pi.set_servo_pulsewidth(ESC1, 0) 
 
 max_value = 2000                                                # Maximum Pulse
 min_value = 1000                                                # Minimum Pulse
@@ -61,6 +59,9 @@ def set_angle(phi_upper, phi_lower):    #controls servo motion
 try:
     
     y = 0.2
+    pi.set_servo_pulsewidth(ESC, min_value) 
+    pi.set_servo_pulsewidth(ESC1, min_value) 
+    time.sleep(2)
     #while(True):
         #phi_upper = float(input("Enter a value between 9.58 to -9.58 for the upper servo: "))   #tests servo motion by asking for angles
         #phi_lower = float(input("Enter a value between 9.58 to -9.58 for the lower servo: "))
@@ -113,4 +114,3 @@ except KeyboardInterrupt:
     pi.set_servo_pulsewidth(ESC1, speed)
     set_angle(0, 0)
     pi.stop()
-    
