@@ -71,9 +71,9 @@ def LIDAR():                                                    # LIDAR Code
 '''
 MAIN CODE BEGINS HERE
 '''
-pidThrust = PID(5.0, .6, 1.0, setpoint = 100)
+pidThrust = PID(5.0, .5, 0.85, setpoint = 100)
 pidThrust.sample_time = .75
-distance = LIDAR()                                              # Start by reading LIDA
+distance = LIDAR()                                              # Start by reading LIDAR
 try:
     while True:
         # Measurements Here
