@@ -75,7 +75,7 @@ class LabJackWorker(QtCore.QObject):
     def setLoggingEnabled(self, enabled):
         if not self.loggingEnabled and enabled:
             self.loggingEnabled = True
-            self.filename = f"TestLog-{datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}.csv"
+            self.filename = f'TestLog-{datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}.csv'
             self.write_to_csv(("CH4Temp", "GOXTemp")) #headers
 
 

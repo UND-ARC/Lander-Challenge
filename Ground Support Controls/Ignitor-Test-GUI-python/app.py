@@ -17,15 +17,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         #uic.loadUi("mainwindow.ui", self)
         self.setupUi(self)
 
-        #start all valves closed
-        self.closeCH4Valve()
-        self.closeGOXValve()
-        self.stopFireSparkPlug()
-        self.closeNitrogenValve()
-
         #LabJack data
         self.thread = QtCore.QThread()
         handle = None
+
         try:
             handle = ljm.openS("T7", "ANY", "ANY")
         except Exception as e:
@@ -33,6 +28,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.worker = LabJackWorker(handle)
         self.worker.moveToThread(self.thread)
+
+        # start all valves closed
+        self.closeCH4Valve()
+        self.closeGOXValve()
+        self.stopFireSparkPlug()
+        self.closeNitrogenValve()
 
         # Connect signals
         self.thread.started.connect(self.worker.run)
@@ -63,7 +64,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.StartTest.clicked.connect(self.start_test)
 
         self.NitrogenPurge.clicked.connect(self.nitrogenPurgeClicked)
-        self.DataLogging.clicked.connect(self.DataLogging)
+        self.DataLogging.clicked.connect(self.setLoggingEnabled)
 
 
 
@@ -181,6 +182,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def openNitrogenValve(self):
         print("Opening Nitrogen Valve!")
         self.worker.write_value("FIO7", 1)
+
 
     def closeNitrogenValve(self):
         print("Closing Nitrogen Valve!")
