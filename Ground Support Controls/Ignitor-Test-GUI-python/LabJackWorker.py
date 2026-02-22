@@ -7,12 +7,11 @@ from labjack import ljm
 class LabJackWorker(QtCore.QObject):
     # Signal to send the voltage to the UI
     #voltage_received = QtCore.pyqtSignal(float)
-    CH4Temp_signal = QtCore.pyqtSignal(float)
-    GOXTemp_signal = QtCore.pyqtSignal(float)
+    labjack_signals = QtCore.pyqtSignal(dict)
     error_occurred = QtCore.pyqtSignal(str)
 
     #AIN 0-5 pressures, 12-13 temps
-    channels_to_read = ["AIN0", "AIN1", "AIN2", "AIN3", "AIN4", "AIN5", "AIN12", "AIN13"]
+    channels_to_read = ["AIN0", "AIN1", "AIN2", "AIN3", "AIN4", "AIN5", "AIN6", "AIN12", "AIN13"]
     num_channels = len(channels_to_read)
 
     def __init__(self):
@@ -42,30 +41,50 @@ class LabJackWorker(QtCore.QObject):
                 pressure3 = results[3]
                 pressure4 = results[4]
                 pressure5 = results[5]
+                pressure6 = results[6]
 
                 #Temps
-                temp12 = results[6]
-                temp13 = results[7]
+                temp12 = results[7]
+                temp13 = results[8]
+
+                # TODO scale pressure values
+                PT_01 = scale_value(pressure0, 0, 24, 0, 24)
+                PT_02 = scale_value(pressure1, 0, 24, 0, 24)
+                PT_03 = scale_value(pressure2, 0, 24, 0, 24)
+                PT_04 = scale_value(pressure3, 0, 24, 0, 24)
+                PT_05 = scale_value(pressure4, 0, 24, 0, 24)
+                PT_06 = scale_value(pressure5, 0, 24, 0, 24)
+                PT_07 = scale_value(pressure6, 0, 24, 0, 24)
 
                 CH4Temp = scale_value(temp12, 0, 10, -150, 1370)
                 GOXTemp = scale_value(temp13, 0, 10, -150, 1370)
 
+
+
+
+                output = {
+                    "CH4Temp": CH4Temp,
+                    "GOXTemp": GOXTemp,
+                    "PT-01" : PT_01,
+                    "PT-02" : PT_02,
+                    "PT-03" : PT_03,
+                    "PT-04" : PT_04,
+                    "PT-05" : PT_05,
+                    "PT-06" : PT_06,
+                    "PT-07" : PT_07,
+                }
+
                 if self.loggingEnabled:
-                    self.write_to_csv((CH4Temp, GOXTemp))
+                    self.write_to_csv(output.values())
 
                 # 2. Emit the signals
                 #self.voltage_received.emit(value)
-                self.CH4Temp_signal.emit(CH4Temp)
-                # self.GOXTemp_signal.emit(GOXTemp)
+                self.labjack_signals.emit(output)
 
                 # 3. Frequency of reading (e.g., 10Hz = 0.1)
                 time.sleep(0.004)
         except Exception as e:
             self.error_occurred.emit(str(e))
-        '''finally:
-            if self.handle is not None:
-                ljm.close(self.handle)
-                self.handle = None'''
 
     @QtCore.pyqtSlot(str, float)
     def write_value(self, name, value):
@@ -85,15 +104,14 @@ class LabJackWorker(QtCore.QObject):
 
     def setLoggingEnabled(self, enabled):
         if enabled and not self.loggingEnabled:
-            # FIX: Windows filenames cannot have colons ":"
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             self.filename = f'TestLog-{timestamp}.csv'
 
-        #Write Header
+                #Write Header
             try:
                 with open(self.filename, mode='w', newline='') as f:
                     writer = csv.writer(f)
-                    writer.writerow(["Timestamp", "CH4Temp", "GOXTemp"])
+                    writer.writerow(["Timestamp", "CH4Temp", "GOXTemp", "PT-01", "PT-02", "PT-03", "PT-04", "PT-05", "PT-06", "PT-07"])
                     self.loggingEnabled = True
             except Exception as e:
                 self.error_occurred.emit(f"File Error: {e}")
@@ -103,16 +121,13 @@ class LabJackWorker(QtCore.QObject):
 
 
     def write_to_csv(self, data):
-        try:
         # Open in 'append' mode so we don't overwrite previous data
-            with open(self.filename, mode='a', newline='') as f:
-                writer = csv.writer(f)
+        with open(self.filename, mode='a', newline='') as f:
+            writer = csv.writer(f)
             # Create a timestamp
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
             # Write: Timestamp, AIN0, AIN1
-                writer.writerow([timestamp] + list(data))
-        except Exception as e:
-            print(f"Write Error: {e}")
+            writer.writerow([timestamp] + list(data))
 
 
 def scale_value(voltage, min_in, max_in, min_out, max_out):
