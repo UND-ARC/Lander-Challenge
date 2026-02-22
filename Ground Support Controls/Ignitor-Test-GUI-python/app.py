@@ -39,6 +39,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.thread.started.connect(self.worker.run)
         #self.worker.voltage_received.connect(self.update_lcd)
         self.worker.error_occurred.connect(self.handle_error)
+        self.worker.CH4Temp_signal.connect(self.displayCH4Temp)
+
 
         self.thread.start()
 
@@ -66,7 +68,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.NitrogenPurge.clicked.connect(self.nitrogenPurgeClicked)
         self.DataLogging.clicked.connect(self.setLoggingEnabled)
 
-
+        # Connect
 
     def start_test(self):
         #progress bar
@@ -170,6 +172,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.CH4ValveIndicator.setCurrentWidget(self.CH4_Closed)
         self.CH4ValveIndicator.show()
         #TODO
+
+    def displayCH4Temp(self, value):
+        self.TC_01.setText(value)
 
     def nitrogenPurgeClicked(self, checked):
         if checked:
