@@ -4,7 +4,6 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from LabJackWorker import LabJackWorker
 #from PyQt6 import uic
 from MainWindow import Ui_MainWindow
-from labjack import ljm
 
 
 #run to covert .ui file to python
@@ -19,14 +18,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         #LabJack data
         self.thread = QtCore.QThread()
-        handle = None
 
-        try:
-            handle = ljm.openS("T7", "ANY", "ANY")
-        except Exception as e:
-            print(e)
-
-        self.worker = LabJackWorker(handle)
+        self.worker = LabJackWorker()
         self.worker.moveToThread(self.thread)
 
         # start all valves closed

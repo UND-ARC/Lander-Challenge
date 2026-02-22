@@ -15,16 +15,19 @@ class LabJackWorker(QtCore.QObject):
     channels_to_read = ["AIN0", "AIN1", "AIN2", "AIN3", "AIN4", "AIN5", "AIN12", "AIN13"]
     num_channels = len(channels_to_read)
 
-    def __init__(self, handle):
+    def __init__(self):
         super().__init__()
-        self.handle = handle
+        self.handle = None
         self.loggingEnabled = False
         self._running = True
         self._output_queue = None  # To store pending writes
         self.filename = "temp.csv"
 
+
+
     def run(self):
         try:
+            self.handle = ljm.openS("T7", "ANY", "ANY")
 
             while self._running:
                 # 1. Read from LabJack (This is the "blocking" part)
@@ -63,6 +66,10 @@ class LabJackWorker(QtCore.QObject):
     @QtCore.pyqtSlot(str, float)
     def write_value(self, name, value):
         """This method will be called by the GUI."""
+        if self.handle is None:
+            print("Can't write value, Labjack not connected")
+            return
+
         try:
             # Direct write to the LabJack (e.g., setting a DAC or Digital Out)
             ljm.eWriteName(self.handle, name, value)
