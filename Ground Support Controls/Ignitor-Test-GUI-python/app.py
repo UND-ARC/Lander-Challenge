@@ -265,6 +265,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.PT_06.setText(f'{values["PT-06"]:.2f} psi')
         self.PT_07.setText(f'{values["PT-07"]:.2f} psi')
 
+        if (values["PT-03"] > self.UpperO2.value()) or (values["PT-03"] < self.LowerO2.value()) or (values["PT-04"] > self.UpperO2.value()) or (values["PT-04"] < self.LowerO2.value()):
+            self.PressureAlarm.setCurrentWidget(self.Alarm)
+            self.PressureAlarm.show()
+        else:
+            self.PressureAlarm.setCurrentWidget(self.Normal)
+            self.PressureAlarm.show()
+
+        if self.PressureAlarm.currentWidget() == self.Normal and not (self.ESTOP.isChecked() or self.KillIgnitor.isChecked()):
+            self.TestStatus.setCurrentWidget(self.GO)
+            self.TestStatus.show()
+        else:
+            self.TestStatus.setCurrentWidget(self.NOGO)
+            self.TestStatus.show()
+
 
     def nitrogenPurgeClicked(self, checked):
         if checked:
