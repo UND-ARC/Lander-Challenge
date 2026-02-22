@@ -56,12 +56,16 @@ class LabJackWorker(QtCore.QObject):
                 # 2. Emit the signals
                 #self.voltage_received.emit(value)
                 self.CH4Temp_signal.emit(CH4Temp)
-                self.GOXTemp_signal.emit(GOXTemp)
+                # self.GOXTemp_signal.emit(GOXTemp)
 
                 # 3. Frequency of reading (e.g., 10Hz = 0.1)
-                time.sleep(0.1)
+                time.sleep(0.004)
         except Exception as e:
             self.error_occurred.emit(str(e))
+        '''finally:
+            if self.handle is not None:
+                ljm.close(self.handle)
+                self.handle = None'''
 
     @QtCore.pyqtSlot(str, float)
     def write_value(self, name, value):
@@ -80,20 +84,35 @@ class LabJackWorker(QtCore.QObject):
         self._running = False
 
     def setLoggingEnabled(self, enabled):
-        if not self.loggingEnabled and enabled:
-            self.loggingEnabled = True
-            self.filename = f'TestLog-{datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}.csv'
-            self.write_to_csv(("CH4Temp", "GOXTemp")) #headers
+        if enabled and not self.loggingEnabled:
+            # FIX: Windows filenames cannot have colons ":"
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            self.filename = f'TestLog-{timestamp}.csv'
+
+        #Write Header
+            try:
+                with open(self.filename, mode='w', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["Timestamp", "CH4Temp", "GOXTemp"])
+                    self.loggingEnabled = True
+            except Exception as e:
+                self.error_occurred.emit(f"File Error: {e}")
+
+        else:
+            self.loggingEnabled = False
 
 
     def write_to_csv(self, data):
+        try:
         # Open in 'append' mode so we don't overwrite previous data
-        with open(self.filename, mode='a', newline='') as f:
-            writer = csv.writer(f)
+            with open(self.filename, mode='a', newline='') as f:
+                writer = csv.writer(f)
             # Create a timestamp
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
             # Write: Timestamp, AIN0, AIN1
-            writer.writerow([timestamp] + list(data))
+                writer.writerow([timestamp] + list(data))
+        except Exception as e:
+            print(f"Write Error: {e}")
 
 
 def scale_value(voltage, min_in, max_in, min_out, max_out):

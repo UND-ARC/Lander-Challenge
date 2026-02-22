@@ -26,7 +26,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.closeCH4Valve()
         self.closeGOXValve()
         self.stopFireSparkPlug()
-        self.closeNitrogenValve()
+        # self.closeNitrogenValve()
 
         # Connect signals
         self.thread.started.connect(self.worker.run)
@@ -167,7 +167,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         #TODO
 
     def displayCH4Temp(self, value):
-        self.TC_01.setText(value)
+        # Format to 1 decimal place
+        self.TC_01.setText(f"{value:.1f} °C")
 
     def nitrogenPurgeClicked(self, checked):
         if checked:
