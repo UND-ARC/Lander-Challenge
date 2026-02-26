@@ -21,6 +21,9 @@ class LabJackWorker(QtCore.QObject):
         self._running = True
         self._output_queue = None  # To store pending writes
         self.filename = "temp.csv"
+        self.log_file = None
+        self.csv_writer = None
+        self.flush_counter = 0
 
 
 
@@ -85,6 +88,12 @@ class LabJackWorker(QtCore.QObject):
                 time.sleep(0.004)
         except Exception as e:
             self.error_occurred.emit(str(e))
+        finally:
+            if self.handle:
+                ljm.close(self.handle)
+                # Ensure the file is closed even if the loop crashes
+            if hasattr(self, 'log_file') and self.log_file:
+                self.log_file.close()
 
     @QtCore.pyqtSlot(str, float)
     def write_value(self, name, value):
@@ -104,30 +113,46 @@ class LabJackWorker(QtCore.QObject):
 
     def setLoggingEnabled(self, enabled):
         if enabled and not self.loggingEnabled:
+            # 1. Create a safe filename
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             self.filename = f'TestLog-{timestamp}.csv'
 
-                #Write Header
             try:
-                with open(self.filename, mode='w', newline='') as f:
-                    writer = csv.writer(f)
-                    writer.writerow(["Timestamp", "CH4Temp", "GOXTemp", "PT-01", "PT-02", "PT-03", "PT-04", "PT-05", "PT-06", "PT-07"])
-                    self.loggingEnabled = True
-            except Exception as e:
-                self.error_occurred.emit(f"File Error: {e}")
+                # 2. Open the file once and keep it open
+                self.log_file = open(self.filename, mode='w', newline='')
+                self.csv_writer = csv.writer(self.log_file)
 
-        else:
+                # 3. Write headers
+                self.csv_writer.writerow(["Timestamp", "CH4Temp", "GOXTemp", "PT-01", "PT-02", "PT-03", "PT-04", "PT-05", "PT-06", "PT-07"])
+
+                # 4. Initialize flush counter
+                self.flush_counter = 0
+                self.loggingEnabled = True
+                print(f"Logging started: {self.filename}")
+            except Exception as e:
+                self.error_occurred.emit(f"Failed to open log file: {e}")
+
+        elif not enabled and self.loggingEnabled:
+            # 5. Shut down logging safely
             self.loggingEnabled = False
+            if hasattr(self, 'log_file') and self.log_file:
+                self.log_file.flush()
+                self.log_file.close()
+                self.log_file = None
+                print("Logging stopped and file saved.")
 
 
     def write_to_csv(self, data):
-        # Open in 'append' mode so we don't overwrite previous data
-        with open(self.filename, mode='a', newline='') as f:
-            writer = csv.writer(f)
-            # Create a timestamp
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-            # Write: Timestamp, AIN0, AIN1
-            writer.writerow([timestamp] + list(data))
+        if self.loggingEnabled and self.log_file:
+            timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+            self.csv_writer.writerow(timestamp + list(data.values()))
+
+            # --- FLUSH TIMER LOGIC ---
+            # Increment counter. If 10Hz, 50 steps = 5 seconds.
+            self.flush_counter += 1
+            if self.flush_counter >= 50:
+                self.log_file.flush()
+                self.flush_counter = 0
 
 
 def scale_value(voltage, min_in, max_in, min_out, max_out):

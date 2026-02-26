@@ -1,6 +1,9 @@
-import sys
+import sys, os
+# MUST happen before importing pyqtgraph
+os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt6'
+import pyqtgraph as pg
 from PyQt6 import QtCore, QtWidgets
-
+from collections import deque
 from LabJackWorker import LabJackWorker
 #from PyQt6 import uic
 from MainWindow import Ui_MainWindow
@@ -47,6 +50,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.testTimerSparkDelay = QtCore.QTimer()
         self.testTimerSparkDelay.timeout.connect(self.sparkDelayTimeout)
 
+        self.sparkTimer = QtCore.QTimer()
+        self.sparkTimer.timeout.connect(self.toggleSparkRelay)
+        self.sparkRelayOn = False
+
         # Track our current position
         self.current_step = 0
         self.total_steps = 0
@@ -78,6 +85,25 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.closeGOXValve()
         self.stopFireSparkPlug()
         self.closeNitrogenValve()
+
+        #graphs
+
+        # 1. Setup the Buffer
+        # This keeps the last 200 points so the graph "scrolls"
+        self.max_points = 200
+        self.chamberPressurePlotData = deque([0.0] * self.max_points, maxlen=self.max_points)
+        self.x_values = list(range(self.max_points))
+
+        # 2. Style the Graph
+        self.ChamperPressureGraph.setBackground('k')  # Black background
+        self.ChamperPressureGraph.showGrid(x=True, y=True)
+        self.ChamperPressureGraph.setLabel('left', 'Pressure', units='PSI')
+
+        # 3. Create the Curve (Yellow line, 2 pixels wide)
+        self.curve = self.ChamperPressureGraph.plot(self.x_values, list(self.chamberPressurePlotData),
+                                                    pen=pg.mkPen('y', width=2))
+
+
 
 
 
@@ -279,6 +305,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.TestStatus.setCurrentWidget(self.NOGO)
             self.TestStatus.show()
 
+        #Graphs
+        # Add new value to the right of the deque (automatically pushes old ones out)
+        self.chamberPressurePlotData.append(values["PT-05"])
+
+        # Update the graph line with the new data
+        # We convert the deque to a list because pyqtgraph expects a sequence
+        self.curve.setData(self.x_values, list(self.chamberPressurePlotData))
+
 
     def nitrogenPurgeClicked(self, checked):
         if checked:
@@ -305,14 +339,24 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.Ignitor.setText("ON")
         self.IgnitorIndicator.setCurrentWidget(self.Ignitor_On)
         self.IgnitorIndicator.show()
-        #TODO
+
+        self.sparkTimer.start(333)
+
 
     def stopFireSparkPlug(self):
         print("Stopped Fire Spark Plug!")
         self.Ignitor.setText("OFF")
         self.IgnitorIndicator.setCurrentWidget(self.Ignitor_Off)
         self.IgnitorIndicator.show()
-        #TODO
+
+        self.sparkTimer.stop()
+        self.worker.write_value("FIO0", 0)
+
+    def toggleSparkRelay(self):
+        if self.sparkRelayOn:
+            self.worker.write_value("FIO0", 0)
+        else:
+            self.worker.write_value("FIO0", 1)
 
 
     def handle_error(self, err_msg):
