@@ -301,9 +301,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.PressureAlarm.currentWidget() == self.Normal and not (self.ESTOP.isChecked() or self.KillIgnitor.isChecked()):
             self.TestStatus.setCurrentWidget(self.GO)
             self.TestStatus.show()
+            self.StartTest.setEnabled(True)
         else:
             self.TestStatus.setCurrentWidget(self.NOGO)
             self.TestStatus.show()
+            self.StartTest.setEnabled(False)
 
         #Graphs
         # Add new value to the right of the deque (automatically pushes old ones out)
