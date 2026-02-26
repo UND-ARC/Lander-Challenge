@@ -254,14 +254,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.GOX_Valve.setText("OPEN")
         self.GOXValveIndicator.setCurrentWidget(self.GOX_Open)
         self.GOXValveIndicator.show()
-        #TODO self.worker.write_value("FIO8", 1)
+        self.worker.write_value("FIO7", 1)
 
     def closeGOXValve(self):
         print("Closing GOX Valve!")
         self.GOX_Valve.setText("CLOSE")
         self.GOXValveIndicator.setCurrentWidget(self.GOX_Closed)
         self.GOXValveIndicator.show()
-        #TODO self.worker.write_value("FIO8", 0)
+        self.worker.write_value("FIO7", 0)
 
     def openCH4Valve(self):
         if self.ESTOP.isChecked():
@@ -270,14 +270,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.CH4_Valve.setText("OPEN")
         self.CH4ValveIndicator.setCurrentWidget(self.CH4_Open)
         self.CH4ValveIndicator.show()
-        #TODO self.worker.write_value("FIO9", 1)
+        self.worker.write_value("FIO6", 1)
 
     def closeCH4Valve(self):
         print("Closing CH4 Valve!")
         self.CH4_Valve.setText("CLOSE")
         self.CH4ValveIndicator.setCurrentWidget(self.CH4_Closed)
         self.CH4ValveIndicator.show()
-        #TODO self.worker.write_value("FIO9", 0)
+        self.worker.write_value("FIO6", 0)
 
     def displayLabjackValues(self, values):
         # Format to 2 decimal place
@@ -326,12 +326,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def openNitrogenValve(self):
         print("Opening Nitrogen Valve!")
-        self.worker.write_value("FIO7", 1)
+        self.worker.write_value("FIO4", 1)
 
 
     def closeNitrogenValve(self):
         print("Closing Nitrogen Valve!")
-        self.worker.write_value("FIO7", 0)
+        self.worker.write_value("FIO4", 0)
 
 
     def startFireSparkPlug(self):
@@ -341,7 +341,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.Ignitor.setText("ON")
         self.IgnitorIndicator.setCurrentWidget(self.Ignitor_On)
         self.IgnitorIndicator.show()
-
+        self.worker.write_value("FIO4", 1)
         self.sparkTimer.start(333)
 
 
@@ -353,6 +353,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.sparkTimer.stop()
         self.worker.write_value("FIO0", 0)
+        self.worker.write_value("FIO4", 0)
 
     def toggleSparkRelay(self):
         if self.sparkRelayOn:

@@ -78,7 +78,7 @@ class LabJackWorker(QtCore.QObject):
                 }
 
                 if self.loggingEnabled:
-                    self.write_to_csv(output.values())
+                    self.write_to_csv(list(output.values()))
 
                 # 2. Emit the signals
                 #self.voltage_received.emit(value)
@@ -88,12 +88,14 @@ class LabJackWorker(QtCore.QObject):
                 time.sleep(0.004)
         except Exception as e:
             self.error_occurred.emit(str(e))
+
         finally:
             if self.handle:
                 ljm.close(self.handle)
                 # Ensure the file is closed even if the loop crashes
             if hasattr(self, 'log_file') and self.log_file:
                 self.log_file.close()
+
 
     @QtCore.pyqtSlot(str, float)
     def write_value(self, name, value):
@@ -136,8 +138,11 @@ class LabJackWorker(QtCore.QObject):
             # 5. Shut down logging safely
             self.loggingEnabled = False
             if hasattr(self, 'log_file') and self.log_file:
-                self.log_file.flush()
-                self.log_file.close()
+                try:
+                    self.log_file.flush()
+                    self.log_file.close()
+                except Exception as e:
+                    print(e)
                 self.log_file = None
                 print("Logging stopped and file saved.")
 
@@ -145,7 +150,8 @@ class LabJackWorker(QtCore.QObject):
     def write_to_csv(self, data):
         if self.loggingEnabled and self.log_file:
             timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-            self.csv_writer.writerow(timestamp + list(data.values()))
+            output = [timestamp] + data
+            self.csv_writer.writerow(output)
 
             # --- FLUSH TIMER LOGIC ---
             # Increment counter. If 10Hz, 50 steps = 5 seconds.
