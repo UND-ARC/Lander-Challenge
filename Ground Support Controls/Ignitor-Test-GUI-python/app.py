@@ -7,6 +7,7 @@ from collections import deque
 from LabJackWorker import LabJackWorker
 #from PyQt6 import uic
 from MainWindow import Ui_MainWindow
+import math
 
 
 #run to covert .ui file to python
@@ -290,6 +291,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.PT_05.setText(f'{values["PT-05"]:.2f} psi')
         self.PT_06.setText(f'{values["PT-06"]:.2f} psi')
         self.PT_07.setText(f'{values["PT-07"]:.2f} psi')
+
+        deltaPGOX = math.fabs(self.PT_01.value() - self.PT_03.value())
+
+        Cd = 0.0 #Discharge Coefficient
+        A = 0.0 #Orifice area
+        Y = 0.0 #ratio of specific heats
+        p0 = 0.0 #total gas density (lbm/ft^3)
+        P0 = 0.0 #Absolute Upstream total pressure
+
+        GOXMassFlowRate = Cd * A * math.sqrt(Y*p0*P0*math.pow((2/(Y+1)),((Y+1)/(Y-1))))
+
+        self.GOXMassRate.setText(f'{GOXMassFlowRate:.2f} km/h')
 
         if (values["PT-03"] > self.UpperO2.value()) or (values["PT-03"] < self.LowerO2.value()) or (values["PT-04"] > self.UpperO2.value()) or (values["PT-04"] < self.LowerO2.value()):
             self.PressureAlarm.setCurrentWidget(self.Alarm)
