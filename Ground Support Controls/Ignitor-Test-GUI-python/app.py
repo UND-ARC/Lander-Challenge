@@ -87,22 +87,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.stopFireSparkPlug()
         self.closeNitrogenValve()
 
-        #graphs
 
-        # 1. Setup the Buffer
-        # This keeps the last 200 points so the graph "scrolls"
-        self.max_points = 200
-        self.chamberPressurePlotData = deque([0.0] * self.max_points, maxlen=self.max_points)
-        self.x_values = list(range(self.max_points))
-
-        # 2. Style the Graph
-        self.ChamperPressureGraph.setBackground('k')  # Black background
-        self.ChamperPressureGraph.showGrid(x=True, y=True)
-        self.ChamperPressureGraph.setLabel('left', 'Pressure', units='PSI')
-
-        # 3. Create the Curve (Yellow line, 2 pixels wide)
-        self.curve = self.ChamperPressureGraph.plot(self.x_values, list(self.chamberPressurePlotData),
-                                                    pen=pg.mkPen('y', width=2))
 
 
 
@@ -378,6 +363,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def handle_error(self, err_msg):
         """Handle LabJack Error"""
         print(f"LabJack Error: {err_msg}")
+
+    def closeEvent(self, event):
+        self.graph_win.close()  # Close the separate window
+        self.worker.stop()
+        self.thread.quit()
+        self.thread.wait()
+        event.accept()
 
 
 
