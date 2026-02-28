@@ -7,7 +7,9 @@ from collections import deque
 from LabJackWorker import LabJackWorker
 #from PyQt6 import uic
 from MainWindow import Ui_MainWindow
+from GraphWindow import GraphWindow
 import math
+
 
 
 #run to covert .ui file to python
@@ -26,13 +28,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.worker = LabJackWorker()
         self.worker.moveToThread(self.thread)
 
-
+        self.GraphWindow = GraphWindow()
+        self.actionGraphWindow.triggered.connect(self.toggle_dashboard)
 
         # Connect signals
         self.thread.started.connect(self.worker.run)
         #self.worker.voltage_received.connect(self.update_lcd)
         self.worker.error_occurred.connect(self.handle_error)
         self.worker.labjack_signals.connect(self.displayLabjackValues)
+
 
 
         self.thread.start()
@@ -86,12 +90,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.closeGOXValve()
         self.stopFireSparkPlug()
         self.closeNitrogenValve()
-
-
-
-
-
-
 
 
     def start_test(self):
@@ -277,17 +275,23 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.PT_06.setText(f'{values["PT-06"]:.2f} psi')
         self.PT_07.setText(f'{values["PT-07"]:.2f} psi')
 
-        deltaPGOX = math.fabs(self.PT_01.value() - self.PT_03.value())
 
-        Cd = 0.0 #Discharge Coefficient
-        A = 0.0 #Orifice area
-        Y = 0.0 #ratio of specific heats
-        p0 = 0.0 #total gas density (lbm/ft^3)
-        P0 = 0.0 #Absolute Upstream total pressure
-
-        GOXMassFlowRate = Cd * A * math.sqrt(Y*p0*P0*math.pow((2/(Y+1)),((Y+1)/(Y-1))))
+        #TODO set Cd
+        GOXMassFlowRate, GOXFlowRegime = calculate_mass_flow_real(values["PT_01"], values["PT_03"], values["GOXTemp"], 25, 'Oxygen', 0.62)
 
         self.GOXMassRate.setText(f'{GOXMassFlowRate:.2f} km/h')
+        if GOXFlowRegime == "Choked":
+            self.GOXMassRate.setStyleSheet("background-color: blue; color: white;")
+        else:
+            self.GOXMassRate.setStyleSheet("background-color: yellow; color: black;")
+
+        CH4MassFlowRate, CH4FlowRegime = calculate_mass_flow_real(values["PT_01"], values["PT_03"], values["GOXTemp"], 25, 'Methane', 0.62)
+
+        self.CH4MassRate.setText(f'{CH4MassFlowRate:.2f} km/h')
+        if CH4FlowRegime == "Choked":
+            self.CH4MassRate.setStyleSheet("background-color: blue; color: white;")
+        else:
+            self.CH4MassRate.setStyleSheet("background-color: yellow; color: black;")
 
         if (values["PT-03"] > self.UpperO2.value()) or (values["PT-03"] < self.LowerO2.value()) or (values["PT-04"] > self.UpperO2.value()) or (values["PT-04"] < self.LowerO2.value()):
             self.PressureAlarm.setCurrentWidget(self.Alarm)
@@ -307,11 +311,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         #Graphs
         # Add new value to the right of the deque (automatically pushes old ones out)
-        self.chamberPressurePlotData.append(values["PT-05"])
+        self.GraphWindow.ChamberPressureGraph.updateGraph(values["PT-05"])
+        self.GraphWindow.GOXMassFlowRateGraph.updateGraph(GOXMassFlowRate)
+        self.GraphWindow.CH4MassFlowRateGraph.updateGraph(CH4MassFlowRate)
 
-        # Update the graph line with the new data
-        # We convert the deque to a list because pyqtgraph expects a sequence
-        self.curve.setData(self.x_values, list(self.chamberPressurePlotData))
+    def toggle_dashboard(self):
+        if self.GraphWindow.isVisible():
+            self.GraphWindow.activateWindow()  # Bring to front if already open
+            self.GraphWindow.raise_()
+        else:
+            self.GraphWindow.show()
 
 
     def nitrogenPurgeClicked(self, checked):
@@ -365,11 +374,56 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         print(f"LabJack Error: {err_msg}")
 
     def closeEvent(self, event):
-        self.graph_win.close()  # Close the separate window
+        self.GraphWindow.close()  # Close the separate window
         self.worker.stop()
         self.thread.quit()
         self.thread.wait()
         event.accept()
+
+
+def calculate_flow(P1_psi, P2_psi, T1_C, Cv, gas_type='O2'):
+    """
+    Calculates mass flow rate using psi and Celsius inputs.
+    Based on manufacturer Cv equations converted to SI.
+    https://tameson.com/pages/cv-calculator
+    """
+    # 1. Unit Conversions to SI
+    # 1 psi = 6894.76 Pascals
+    p1 = P1_psi * 6894.76
+    p2 = P2_psi * 6894.76
+    # Celsius to Kelvin
+    t1 = T1_C + 273.15
+
+    # 2. Gas Properties at Standard Conditions (1 atm, 15°C)
+    # G: Specific Gravity (O2=1.1, CH4=0.55)
+    # rho_std: Density at standard conditions (kg/m^3)
+    gas_props = {
+        'O2':  {'G': 1.10, 'rho_std': 1.331},
+        'CH4': {'G': 0.55, 'rho_std': 0.668}
+    }
+
+    G = gas_props[gas_type]['G']
+    rho_std = gas_props[gas_type]['rho_std']
+
+    # 3. Determine Flow Regime (Subcritical vs Supercritical)
+    # Using the P1/2 threshold from your provided reference image
+    if p2 > (p1 / 2):
+        # SUBCRITICAL (Subsonic)
+        # Constant 0.000256 is the SI conversion for the '963' imperial constant
+        q_std = (Cv / 0.000256) * math.sqrt((p1**2 - p2**2) / (G * t1))
+        regime = "Subcritical"
+    else:
+        # SUPERCRITICAL (Choked)
+        # Constant 0.000432 is the SI conversion for the '816' imperial constant
+        q_std = (Cv * p1 / 0.000432) * math.sqrt(1 / (G * t1))
+        regime = "Supercritical (Choked)"
+
+    # 4. Final Mass Flow Calculation
+    # m_dot = Volumetric Flow at Std * Density at Std
+    m_dot = q_std * rho_std
+
+    return m_dot, regime
+
 
 
 
