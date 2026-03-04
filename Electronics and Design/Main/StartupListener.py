@@ -31,7 +31,7 @@ while True:
                 if main_process is None or main_process.poll() is not None:
                     print("Launching Lander-Challenge Main Program...")
                     # Update this path to your actual main script
-                    main_process = subprocess.Popen(["python3", "LanderMain.py"])
+                    main_process = subprocess.Popen(["/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3", "/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py"])
                 else:
                     print("Mission already running.")
 
