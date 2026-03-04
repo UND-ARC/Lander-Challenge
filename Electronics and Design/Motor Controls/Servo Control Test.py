@@ -16,6 +16,7 @@ PULSE_MAX_MS = 2.350   # +90°
 
 # Servo channels
 SERVO1_CH = 0
+SERVO2_CH = 1
 
 # =========================
 # SETUP
@@ -62,13 +63,16 @@ try:
     print("Testing calibrated servo motion...")
 
     set_servo_angle(SERVO1_CH, -90)
-    time.sleep(2)
+    set_servo_angle(SERVO2_CH, -90)
+    time.sleep(5)
 
     set_servo_angle(SERVO1_CH, 0)
-    time.sleep(2)
+    set_servo_angle(SERVO2_CH, 0)
+    time.sleep(5)
 
     set_servo_angle(SERVO1_CH, 90)
-    time.sleep(2)
+    set_servo_angle(SERVO2_CH, 90)
+    time.sleep(5)
 
 finally:
     pca.deinit()
