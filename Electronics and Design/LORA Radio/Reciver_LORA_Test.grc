@@ -33,6 +33,54 @@ options:
     state: enabled
 
 blocks:
+- name: Frequency
+  id: variable
+  parameters:
+    comment: ''
+    value: '915300000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [672, 48.0]
+    rotation: 0
+    state: enabled
+- name: Pluto_IP
+  id: variable
+  parameters:
+    comment: ''
+    value: '"192.168.2.1"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [512, 48.0]
+    rotation: 0
+    state: enabled
+- name: Spreading_Factor
+  id: variable
+  parameters:
+    comment: ''
+    value: '7'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [784, 56.0]
+    rotation: 0
+    state: enabled
+- name: sample_rate
+  id: variable
+  parameters:
+    comment: ''
+    value: '1000000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [368, 56.0]
+    rotation: 0
+    state: enabled
 - name: blocks_message_debug_0
   id: blocks_message_debug
   parameters:
@@ -48,6 +96,49 @@ blocks:
     coordinate: [712, 240.0]
     rotation: 0
     state: enabled
+- name: blocks_message_strobe_0
+  id: blocks_message_strobe
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    msg: pmt.intern("START_MISSION")
+    period: '1000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [952, 120.0]
+    rotation: 0
+    state: enabled
+- name: iio_pluto_sink_0
+  id: iio_pluto_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    attenuation1: '10.0'
+    bandwidth: '20000000'
+    buffer_size: '32768'
+    comment: ''
+    cyclic: 'False'
+    filter: ''
+    filter_source: '''Auto'''
+    fpass: '0'
+    frequency: Frequency
+    fstop: '0'
+    len_tag_key: ''
+    samplerate: sample_rate
+    type: fc32
+    uri: Pluto_IP
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1168, 332.0]
+    rotation: 0
+    state: enabled
 - name: iio_pluto_source_0
   id: iio_pluto_source
   parameters:
@@ -60,7 +151,7 @@ blocks:
     filter: ''
     filter_source: '''Auto'''
     fpass: '0'
-    frequency: '915300000'
+    frequency: Frequency
     fstop: '0'
     gain1: '''slow_attack'''
     len_tag_key: packet_len
@@ -69,9 +160,9 @@ blocks:
     minoutbuf: '0'
     quadrature: 'True'
     rfdc: 'True'
-    samplerate: '1000000'
+    samplerate: sample_rate
     type: fc32
-    uri: 192.168.2.1
+    uri: Pluto_IP
   states:
     bus_sink: false
     bus_source: false
@@ -85,8 +176,8 @@ blocks:
     affinity: ''
     alias: ''
     bandwidth: '125000'
-    center_freq: 915.3e6
-    channel_list: '[915.3e6]'
+    center_freq: Frequency
+    channel_list: '[Frequency]'
     comment: ''
     conj: 'False'
     cr: '4'
@@ -98,8 +189,8 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     reduced_rate: 'False'
-    samp_rate: 1e6
-    sf: '7'
+    samp_rate: sample_rate
+    sf: Spreading_Factor
   states:
     bus_sink: false
     bus_source: false
@@ -138,7 +229,7 @@ blocks:
     color9: '"dark green"'
     comment: ''
     ctrlpanel: 'False'
-    fc: '915300000'
+    fc: Frequency
     fftsize: '1024'
     freqhalf: 'True'
     grid: 'False'
