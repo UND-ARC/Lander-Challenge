@@ -143,7 +143,7 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         self.iio_pluto_sink_0.set_bandwidth(20000000)
         self.iio_pluto_sink_0.set_frequency(Frequency)
         self.iio_pluto_sink_0.set_samplerate(sample_rate)
-        self.iio_pluto_sink_0.set_attenuation(0, 45.0)
+        self.iio_pluto_sink_0.set_attenuation(0, 15)
         self.iio_pluto_sink_0.set_filter_params('Auto', '', 0, 0)
         _btn_trigger_start_push_button = Qt.QPushButton('START MISSION')
         _btn_trigger_start_push_button = Qt.QPushButton('START MISSION')

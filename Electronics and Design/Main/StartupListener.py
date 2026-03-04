@@ -11,6 +11,7 @@ cs = DigitalInOut(board.CE0)
 reset = DigitalInOut(board.D25)
 rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, 915.3)
 
+rfm9x.invert_iq = True
 rfm9x.spreading_factor = 7
 rfm9x.signal_bandwidth = 125000
 rfm9x.coding_rate = 5  # This represents 4/5 in many LoRa libraries
@@ -26,13 +27,15 @@ while True:
         print(f"Noise Floor: {rfm9x.last_rssi} dBm")
     else:
         print("Packet Received!")
-    if packet:
+        # Convert bytes to string and strip whitespace/nulls
+        print(f"Packet raw: , {packet}")
+        packet_text = str(packet, "utf-8").strip()
+        print(f"Decoded: [{packet_text}]")
         try:
-            msg = str(packet, "utf-8").strip()
-            if msg == "STARTMAIN":
+            if packet_text == "STARTMAIN":
                 print("Signal Received. Launching Main Program.")
                 # Execute Main and exit Listener
-                subprocess.Popen(["python3", "/home/jacob/Code/LanderMain.py"])
+                subprocess.Popen(["/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3", "/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py"])
                 sys.exit(0)
         except:
             pass
