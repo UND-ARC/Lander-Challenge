@@ -1,18 +1,25 @@
 import time
-import busio
-from digitalio import DigitalInOut
 import board
+import busio
+import serial
+import adafruit_gps
+from digitalio import DigitalInOut
 import adafruit_rfm9x
+
+#librarys
+# pip install adafruit-circuitpython-gps adafruit-circuitpython-rfm9x adafruit-blinka
+
+# 1. Setup GPS
+uart = serial.Serial("/dev/serial0", baudrate=9600, timeout=10)
+gps = adafruit_gps.GPS(uart, debug=False)
+# Turn on basic GGA and RMC info
+gps.send_command(b"PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0")
+# Set update rate to 1Hz (recommended for initial testing)
+gps.send_command(b"PMTK220,1000")
 
 # Define frequency (Match this to your Pluto+ later)
 RADIO_FREQ_MHZ = 915.3
-
-
-
-# Initialize SPI using the labeled pins on your cobbler
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
-
-# Define pins based on your setup
 cs = DigitalInOut(board.CE0)
 reset = DigitalInOut(board.D25)
 
@@ -30,10 +37,19 @@ except Exception as e:
 # Max power for initial testing
 rfm9x.tx_power = 23
 
-print("Broadcasting 'Hello World' to Pluto+...")
+print("Lander-Challenge: GPS to LoRa active...")
 
 while True:
-    data = bytes("Hello, World!\r\n", "utf-8")
-    rfm9x.send(data)
-    print("Packet sent!")
-    time.sleep(2)
+    gps.update()
+
+    # Check if we have a valid GPS fix
+    if not gps.has_fix:
+        msg = "Waiting for GPS fix..."
+    else:
+        # Format coordinates for the logger
+        msg = f"Lat:{gps.latitude:.6f} Lon:{gps.longitude:.6f} Alt:{gps.altitude_m}m"
+
+    # Send over LoRa
+    rfm9x.send(bytes(msg, "utf-8"))
+    print(f"Sent: {msg}")
+    time.sleep(5)
