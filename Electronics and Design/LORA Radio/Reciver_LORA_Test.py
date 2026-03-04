@@ -120,7 +120,14 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
 
         self._qtgui_freq_sink_x_0_win = sip.wrapinstance(self.qtgui_freq_sink_x_0.qwidget(), Qt.QWidget)
         self.top_layout.addWidget(self._qtgui_freq_sink_x_0_win)
-        self.lora_rx_0 = lora_sdr.lora_sdr_lora_rx( bw=125000, cr=1, has_crc=True, impl_head=False, pay_len=255, samp_rate=sample_rate, sf=Spreading_Factor, sync_word=[0x12], soft_decoding=True, ldro_mode=2, print_rx=[False,True])
+        self.lora_tx_0 = lora_sdr.lora_sdr_lora_tx(
+            bw=125000,
+            cr=1,
+            has_crc=True,
+            impl_head=False,
+            samp_rate=sample_rate,
+            sf=Spreading_Factor,
+         ldro_mode=1,frame_zero_padd=1280,sync_word=[0x12] )
         self.iio_pluto_source_0 = iio.fmcomms2_source_fc32('ip:192.168.2.1' if 'ip:192.168.2.1' else iio.get_pluto_uri(), [True, True], 32768)
         self.iio_pluto_source_0.set_len_tag_key('packet_len')
         self.iio_pluto_source_0.set_frequency(Frequency)
@@ -131,6 +138,13 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         self.iio_pluto_source_0.set_rfdc(True)
         self.iio_pluto_source_0.set_bbdc(True)
         self.iio_pluto_source_0.set_filter_params('Auto', '', 0, 0)
+        self.iio_pluto_sink_0 = iio.fmcomms2_sink_fc32('ip:192.168.2.1' if 'ip:192.168.2.1' else iio.get_pluto_uri(), [True, True], 32768, False)
+        self.iio_pluto_sink_0.set_len_tag_key('')
+        self.iio_pluto_sink_0.set_bandwidth(20000000)
+        self.iio_pluto_sink_0.set_frequency(Frequency)
+        self.iio_pluto_sink_0.set_samplerate(sample_rate)
+        self.iio_pluto_sink_0.set_attenuation(0, 40.0)
+        self.iio_pluto_sink_0.set_filter_params('Auto', '', 0, 0)
         _btn_trigger_start_push_button = Qt.QPushButton('START MISSION')
         _btn_trigger_start_push_button = Qt.QPushButton('START MISSION')
         self._btn_trigger_start_choices = {'Pressed': 1, 'Released': 0}
@@ -151,10 +165,10 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         ##################################################
         # Connections
         ##################################################
-        self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'print'))
-        self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'log'))
-        self.connect((self.iio_pluto_source_0, 0), (self.lora_rx_0, 0))
+        self.msg_connect((self.blocks_message_strobe_0, 'strobe'), (self.blocks_message_debug_0, 'print'))
+        self.msg_connect((self.blocks_message_strobe_0, 'strobe'), (self.lora_tx_0, 'in'))
         self.connect((self.iio_pluto_source_0, 0), (self.qtgui_freq_sink_x_0, 0))
+        self.connect((self.lora_tx_0, 0), (self.iio_pluto_sink_0, 0))
 
 
     def closeEvent(self, event):
@@ -170,6 +184,7 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
 
     def set_sample_rate(self, sample_rate):
         self.sample_rate = sample_rate
+        self.iio_pluto_sink_0.set_samplerate(self.sample_rate)
         self.iio_pluto_source_0.set_samplerate(self.sample_rate)
 
     def get_btn_trigger_start(self):
@@ -189,12 +204,14 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
 
     def set_Spreading_Factor(self, Spreading_Factor):
         self.Spreading_Factor = Spreading_Factor
+        self.lora_tx_0.set_sf(self.Spreading_Factor)
 
     def get_Frequency(self):
         return self.Frequency
 
     def set_Frequency(self, Frequency):
         self.Frequency = Frequency
+        self.iio_pluto_sink_0.set_frequency(self.Frequency)
         self.iio_pluto_source_0.set_frequency(self.Frequency)
         self.qtgui_freq_sink_x_0.set_frequency_range(self.Frequency, 1000000)
 
