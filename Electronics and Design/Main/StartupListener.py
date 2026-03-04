@@ -20,7 +20,12 @@ rfm9x.sync_word = 0x12 # Match your GRC '18' setting
 print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
 
 while True:
-    packet = rfm9x.receive(timeout=None) # Block until signal received
+    packet = rfm9x.receive() # Block until signal received
+    if packet is None:
+        # Print the background noise level every few seconds
+        print(f"Noise Floor: {rfm9x.last_rssi} dBm")
+    else:
+        print("Packet Received!")
     if packet:
         try:
             msg = str(packet, "utf-8").strip()

@@ -191,7 +191,7 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    attenuation1: '40.0'
+    attenuation1: '45.0'
     bandwidth: '20000000'
     buffer_size: '32768'
     comment: ''
@@ -280,7 +280,7 @@ blocks:
     frame_zero_padd: '1280'
     has_crc: 'True'
     impl_head: 'False'
-    ldro: '1'
+    ldro: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
     samp_rate: sample_rate

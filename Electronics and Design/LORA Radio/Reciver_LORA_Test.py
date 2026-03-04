@@ -127,7 +127,7 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
             impl_head=False,
             samp_rate=sample_rate,
             sf=Spreading_Factor,
-         ldro_mode=1,frame_zero_padd=1280,sync_word=[0x12] )
+         ldro_mode=0,frame_zero_padd=1280,sync_word=[0x12] )
         self.iio_pluto_source_0 = iio.fmcomms2_source_fc32('ip:192.168.2.1' if 'ip:192.168.2.1' else iio.get_pluto_uri(), [True, True], 32768)
         self.iio_pluto_source_0.set_len_tag_key('packet_len')
         self.iio_pluto_source_0.set_frequency(Frequency)
@@ -143,7 +143,7 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         self.iio_pluto_sink_0.set_bandwidth(20000000)
         self.iio_pluto_sink_0.set_frequency(Frequency)
         self.iio_pluto_sink_0.set_samplerate(sample_rate)
-        self.iio_pluto_sink_0.set_attenuation(0, 40.0)
+        self.iio_pluto_sink_0.set_attenuation(0, 45.0)
         self.iio_pluto_sink_0.set_filter_params('Auto', '', 0, 0)
         _btn_trigger_start_push_button = Qt.QPushButton('START MISSION')
         _btn_trigger_start_push_button = Qt.QPushButton('START MISSION')
