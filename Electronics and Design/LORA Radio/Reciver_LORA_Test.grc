@@ -45,18 +45,6 @@ blocks:
     coordinate: [672, 48.0]
     rotation: 0
     state: enabled
-- name: Pluto_IP
-  id: variable
-  parameters:
-    comment: ''
-    value: '"192.168.2.1"'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [512, 48.0]
-    rotation: 0
-    state: enabled
 - name: Spreading_Factor
   id: variable
   parameters:
@@ -67,6 +55,40 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [784, 56.0]
+    rotation: 0
+    state: enabled
+- name: btn_trigger_ESTOP
+  id: variable_qtgui_push_button
+  parameters:
+    comment: ''
+    gui_hint: ''
+    label: ESTOP
+    pressed: '1'
+    released: '0'
+    type: int
+    value: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1240, 64.0]
+    rotation: 0
+    state: enabled
+- name: btn_trigger_start
+  id: variable_qtgui_push_button
+  parameters:
+    comment: ''
+    gui_hint: ''
+    label: START MISSION
+    pressed: '1'
+    released: '0'
+    type: int
+    value: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1040, 64.0]
     rotation: 0
     state: enabled
 - name: sample_rate
@@ -93,7 +115,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [712, 240.0]
+    coordinate: [712, 160.0]
     rotation: 0
     state: enabled
 - name: blocks_message_strobe_0
@@ -104,15 +126,66 @@ blocks:
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
-    msg: pmt.intern("START_MISSION")
+    msg: pmt.intern("STARTMAIN")
     period: '1000'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [952, 120.0]
+    coordinate: [600, 336.0]
     rotation: 0
     state: enabled
+- name: blocks_message_strobe_0_0
+  id: blocks_message_strobe
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    msg: pmt.intern("ESTOP")
+    period: '1000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [552, 496.0]
+    rotation: 0
+    state: enabled
+- name: blocks_mute_xx_0
+  id: blocks_mute_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    mute: not btn_trigger_start
+    type: complex
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1072, 352.0]
+    rotation: 0
+    state: disabled
+- name: blocks_mute_xx_0_0
+  id: blocks_mute_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    mute: not btn_trigger_ESTOP
+    type: complex
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1072, 496.0]
+    rotation: 0
+    state: disabled
 - name: iio_pluto_sink_0
   id: iio_pluto_sink
   parameters:
@@ -131,14 +204,14 @@ blocks:
     len_tag_key: ''
     samplerate: sample_rate
     type: fc32
-    uri: Pluto_IP
+    uri: ip:192.168.2.1
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1168, 332.0]
+    coordinate: [1248, 276.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: iio_pluto_source_0
   id: iio_pluto_source
   parameters:
@@ -162,7 +235,7 @@ blocks:
     rfdc: 'True'
     samplerate: sample_rate
     type: fc32
-    uri: Pluto_IP
+    uri: ip:192.168.2.1
   states:
     bus_sink: false
     bus_source: false
@@ -170,34 +243,80 @@ blocks:
     coordinate: [72, 148.0]
     rotation: 0
     state: enabled
-- name: lora_lora_receiver_0
-  id: lora_lora_receiver
+- name: lora_rx_0
+  id: lora_rx
   parameters:
     affinity: ''
     alias: ''
-    bandwidth: '125000'
-    center_freq: Frequency
-    channel_list: '[Frequency]'
+    bw: '125000'
     comment: ''
-    conj: 'False'
-    cr: '4'
-    crc: 'True'
-    decimation: '1'
-    disable_channelization: 'False'
-    disable_drift_correction: 'False'
-    implicit: 'False'
+    cr: '1'
+    has_crc: 'True'
+    impl_head: 'False'
+    ldro: '2'
     maxoutbuf: '0'
     minoutbuf: '0'
-    reduced_rate: 'False'
+    pay_len: '255'
+    print_rx: '[False,True]'
     samp_rate: sample_rate
     sf: Spreading_Factor
+    soft_decoding: 'True'
+    sync_word: '[0x12]'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [360, 188.0]
+    coordinate: [384, 180.0]
     rotation: 0
     state: enabled
+- name: lora_tx_0
+  id: lora_tx
+  parameters:
+    affinity: ''
+    alias: ''
+    bw: '125000'
+    comment: ''
+    cr: '1'
+    frame_zero_padd: '1280'
+    has_crc: 'True'
+    impl_head: 'False'
+    ldro: '2'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samp_rate: '500000'
+    sf: Spreading_Factor
+    sync_word: '[0x12]'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [824, 292.0]
+    rotation: 0
+    state: disabled
+- name: lora_tx_0_0
+  id: lora_tx
+  parameters:
+    affinity: ''
+    alias: ''
+    bw: '125000'
+    comment: ''
+    cr: '1'
+    frame_zero_padd: '1280'
+    has_crc: 'True'
+    impl_head: 'False'
+    ldro: '2'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samp_rate: '500000'
+    sf: Spreading_Factor
+    sync_word: '[0x12]'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [800, 460.0]
+    rotation: 0
+    state: disabled
 - name: qtgui_freq_sink_x_0
   id: qtgui_freq_sink_x
   parameters:
@@ -276,15 +395,35 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [464, 488.0]
+    coordinate: [360, 360.0]
+    rotation: 0
+    state: enabled
+- name: snippet_0
+  id: snippet
+  parameters:
+    alias: ''
+    code: import sys; sys.path.append('/usr/lib/python3.13/site-packages')
+    comment: ''
+    priority: '0'
+    section: Main Python Init
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [160, 48.0]
     rotation: 0
     state: enabled
 
 connections:
-- [iio_pluto_source_0, '0', lora_lora_receiver_0, '0']
+- [blocks_message_strobe_0, strobe, lora_tx_0, in]
+- [blocks_message_strobe_0_0, strobe, lora_tx_0_0, in]
+- [blocks_mute_xx_0, '0', iio_pluto_sink_0, '0']
+- [iio_pluto_source_0, '0', lora_rx_0, '0']
 - [iio_pluto_source_0, '0', qtgui_freq_sink_x_0, '0']
-- [lora_lora_receiver_0, frames, blocks_message_debug_0, log]
-- [lora_lora_receiver_0, frames, blocks_message_debug_0, print]
+- [lora_rx_0, out, blocks_message_debug_0, log]
+- [lora_rx_0, out, blocks_message_debug_0, print]
+- [lora_tx_0, '0', blocks_mute_xx_0, '0']
+- [lora_tx_0_0, '0', blocks_mute_xx_0_0, '0']
 
 metadata:
   file_format: 1
