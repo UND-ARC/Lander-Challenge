@@ -19,8 +19,8 @@ rfm9x.low_data_rate_optimize = False # Match this to your GRC 'Off' setting
 rfm9x.sync_word = 0x12 # Match your GRC '18' setting
 
 print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
-
-while True:
+started = False
+while not started:
     packet = rfm9x.receive()
     if packet is None:
         # Print the background noise level every few seconds
@@ -43,6 +43,9 @@ while True:
 
                 # Execute Main and exit Listener
                 subprocess.Popen(["/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3", "/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py"])
+                started = True
+                break
                 sys.exit(0)
         except:
             pass
+sys.exit(0)

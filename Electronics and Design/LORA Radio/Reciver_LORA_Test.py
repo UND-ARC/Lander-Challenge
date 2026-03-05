@@ -168,7 +168,6 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         ##################################################
         # Connections
         ##################################################
-        self.msg_connect((self.blocks_message_strobe_0, 'strobe'), (self.blocks_message_debug_0, 'print'))
         self.msg_connect((self.blocks_message_strobe_0, 'strobe'), (self.lora_tx_0, 'in'))
         self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'print'))
         self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'log'))

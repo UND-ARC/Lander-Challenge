@@ -421,7 +421,6 @@ blocks:
     state: enabled
 
 connections:
-- [blocks_message_strobe_0, strobe, blocks_message_debug_0, print]
 - [blocks_message_strobe_0, strobe, lora_tx_0, in]
 - [blocks_message_strobe_0_0, strobe, lora_tx_0_0, in]
 - [blocks_mute_xx_0, '0', iio_pluto_sink_0, '0']
