@@ -47,7 +47,7 @@ while not started:
 
 
                 # Execute Main and exit Listener
-                os.system("/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3 -u /home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py > /home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log 2>&1 &")
+                os.system("'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 &")
                 started = True
                 break
                 sys.exit(0)

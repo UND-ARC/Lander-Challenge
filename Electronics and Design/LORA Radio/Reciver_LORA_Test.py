@@ -151,7 +151,7 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         self.iio_pluto_sink_0.set_bandwidth(20000000)
         self.iio_pluto_sink_0.set_frequency(Frequency)
         self.iio_pluto_sink_0.set_samplerate(sample_rate)
-        self.iio_pluto_sink_0.set_attenuation(0, 10)
+        self.iio_pluto_sink_0.set_attenuation(0, 30)
         self.iio_pluto_sink_0.set_filter_params('Auto', '', 0, 0)
         _btn_trigger_ESTOP_push_button = Qt.QPushButton('ESTOP')
         _btn_trigger_ESTOP_push_button = Qt.QPushButton('ESTOP')
@@ -169,8 +169,8 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         # Connections
         ##################################################
         self.msg_connect((self.blocks_message_strobe_0, 'strobe'), (self.lora_tx_0, 'in'))
-        self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'log'))
         self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'print'))
+        self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'log'))
         self.connect((self.blocks_mute_xx_0, 0), (self.iio_pluto_sink_0, 0))
         self.connect((self.iio_pluto_source_0, 0), (self.lora_rx_0, 0))
         self.connect((self.iio_pluto_source_0, 0), (self.qtgui_freq_sink_x_0, 0))
