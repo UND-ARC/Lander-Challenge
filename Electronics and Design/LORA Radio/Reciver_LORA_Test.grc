@@ -37,7 +37,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: '915305000'
+    value: '915300000'
   states:
     bus_sink: false
     bus_source: false
@@ -197,7 +197,7 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    attenuation1: '30'
+    attenuation1: '20'
     bandwidth: '20000000'
     buffer_size: '32768'
     comment: ''

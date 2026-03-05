@@ -72,7 +72,7 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         self.btn_trigger_start = btn_trigger_start = 0
         self.btn_trigger_ESTOP = btn_trigger_ESTOP = 0
         self.Spreading_Factor = Spreading_Factor = 7
-        self.Frequency = Frequency = 915305000
+        self.Frequency = Frequency = 915300000
 
         ##################################################
         # Blocks
@@ -151,7 +151,7 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         self.iio_pluto_sink_0.set_bandwidth(20000000)
         self.iio_pluto_sink_0.set_frequency(Frequency)
         self.iio_pluto_sink_0.set_samplerate(sample_rate)
-        self.iio_pluto_sink_0.set_attenuation(0, 30)
+        self.iio_pluto_sink_0.set_attenuation(0, 20)
         self.iio_pluto_sink_0.set_filter_params('Auto', '', 0, 0)
         _btn_trigger_ESTOP_push_button = Qt.QPushButton('ESTOP')
         _btn_trigger_ESTOP_push_button = Qt.QPushButton('ESTOP')

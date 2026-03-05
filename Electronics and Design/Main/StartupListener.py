@@ -2,7 +2,7 @@ import board
 import busio
 from digitalio import DigitalInOut
 import adafruit_rfm9x
-import os
+import os, subprocess
 import sys
 
 # Standard Startup Hardware Init
@@ -47,7 +47,10 @@ while not started:
 
 
                 # Execute Main and exit Listener
-                os.system("'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 &")
+                #os.system("'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 &")
+                result = subprocess.run(["'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 &"],
+                                        capture_output=True, text=True)
+                print(result.stdout)
                 started = True
                 break
                 sys.exit(0)
