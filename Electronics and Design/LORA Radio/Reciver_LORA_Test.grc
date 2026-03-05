@@ -259,14 +259,14 @@ blocks:
     cr: '1'
     has_crc: 'True'
     impl_head: 'False'
-    ldro: '2'
+    ldro: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
     pay_len: '255'
-    print_rx: '[False,True]'
+    print_rx: '[True,True]'
     samp_rate: sample_rate
     sf: Spreading_Factor
-    soft_decoding: 'True'
+    soft_decoding: 'False'
     sync_word: '[0x12]'
   states:
     bus_sink: false

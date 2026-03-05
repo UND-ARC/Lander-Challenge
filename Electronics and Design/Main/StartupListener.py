@@ -52,8 +52,9 @@ while not started:
                                         capture_output=True, text=True)
                 print(result.stdout)
                 started = True
-                break
                 sys.exit(0)
+                break
+
         except:
             pass
 sys.exit(0)

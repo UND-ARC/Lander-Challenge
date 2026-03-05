@@ -135,7 +135,7 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
             samp_rate=sample_rate,
             sf=Spreading_Factor,
          ldro_mode=0,frame_zero_padd=1280,sync_word=[0x12] )
-        self.lora_rx_0 = lora_sdr.lora_sdr_lora_rx( bw=125000, cr=1, has_crc=True, impl_head=False, pay_len=255, samp_rate=sample_rate, sf=Spreading_Factor, sync_word=[0x12], soft_decoding=True, ldro_mode=2, print_rx=[False,True])
+        self.lora_rx_0 = lora_sdr.lora_sdr_lora_rx( bw=125000, cr=1, has_crc=True, impl_head=False, pay_len=255, samp_rate=sample_rate, sf=Spreading_Factor, sync_word=[0x12], soft_decoding=False, ldro_mode=0, print_rx=[True,True])
         self.iio_pluto_source_0 = iio.fmcomms2_source_fc32('ip:192.168.2.1' if 'ip:192.168.2.1' else iio.get_pluto_uri(), [True, True], 32768)
         self.iio_pluto_source_0.set_len_tag_key('packet_len')
         self.iio_pluto_source_0.set_frequency(Frequency)
