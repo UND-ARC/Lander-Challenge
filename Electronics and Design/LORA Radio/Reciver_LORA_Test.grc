@@ -37,7 +37,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: '915300000'
+    value: '915305000'
   states:
     bus_sink: false
     bus_source: false
@@ -75,12 +75,18 @@ blocks:
     rotation: 0
     state: enabled
 - name: btn_trigger_start
-  id: variable_qtgui_push_button
+  id: variable_qtgui_toggle_button_msg
   parameters:
     comment: ''
     gui_hint: ''
-    label: START MISSION
+    initPressed: 'False'
+    label: START
+    outputmsgname: value
+    pressBackgroundColor: default
+    pressFontColor: default
     pressed: '1'
+    relBackgroundColor: default
+    relFontColor: default
     released: '0'
     type: int
     value: '0'
@@ -88,7 +94,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1040, 64.0]
+    coordinate: [1008, 88.0]
     rotation: 0
     state: enabled
 - name: sample_rate
@@ -126,8 +132,8 @@ blocks:
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
-    msg: pmt.intern("STARTMAIN")
-    period: '1000'
+    msg: pmt.intern("                     STARTMAIN")
+    period: '500'
   states:
     bus_sink: false
     bus_source: false
@@ -166,9 +172,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1096, 392.0]
+    coordinate: [1096, 296.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: blocks_mute_xx_0_0
   id: blocks_mute_xx
   parameters:
@@ -191,7 +197,7 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    attenuation1: '15'
+    attenuation1: '10'
     bandwidth: '20000000'
     buffer_size: '32768'
     comment: ''
@@ -268,7 +274,7 @@ blocks:
     bus_structure: null
     coordinate: [384, 180.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: lora_tx_0
   id: lora_tx
   parameters:
@@ -424,7 +430,6 @@ connections:
 - [lora_rx_0, out, blocks_message_debug_0, log]
 - [lora_rx_0, out, blocks_message_debug_0, print]
 - [lora_tx_0, '0', blocks_mute_xx_0, '0']
-- [lora_tx_0, '0', iio_pluto_sink_0, '0']
 - [lora_tx_0_0, '0', blocks_mute_xx_0_0, '0']
 
 metadata:

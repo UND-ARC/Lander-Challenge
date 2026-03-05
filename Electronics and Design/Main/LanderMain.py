@@ -1,27 +1,32 @@
-import board
-import busio
-from digitalio import DigitalInOut
-import adafruit_rfm9x
-import subprocess
+import time
 import sys
+from RadioModule import LanderRadio
+from GPSModule import LanderGPS
 
-# Standard Startup Hardware Init
-spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
-cs = DigitalInOut(board.CE0)
-reset = DigitalInOut(board.D25)
-rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, 915.3)
 
-print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
+def main():
+    radio = LanderRadio()
+    gps = LanderGPS()
 
-while True:
-    packet = rfm9x.receive(timeout=None) # Block until signal received
-    if packet:
-        try:
-            msg = str(packet, "utf-8").strip()
-            if msg == "STARTMAIN":
-                print("Signal Received. Launching Main Program.")
-                # Execute Main and exit Listener
-                subprocess.Popen(["python3", "/home/jacob/Code/LanderMain.py"])
-                sys.exit(0) 
-        except:
-            pass
+    print("Main Program Running. Monitoring for ESTOP...")
+
+    try:
+        while True:
+            # 1. Check for Emergency Stop from Pluto+
+            if radio.check_for_estop():
+                print("ESTOP RECEIVED! Terminating vehicle functions.")
+                sys.exit(0)
+
+            # 2. Get and Send GPS Data
+            location = gps.get_coords()
+            radio.send_data(location)
+            print(f"Broadcasting: {location}")
+
+            time.sleep(1)
+
+    except KeyboardInterrupt:
+        print("Manual Shutdown")
+
+
+if __name__ == "__main__":
+    main()

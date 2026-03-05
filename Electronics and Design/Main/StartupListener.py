@@ -21,7 +21,7 @@ rfm9x.sync_word = 0x12 # Match your GRC '18' setting
 print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
 
 while True:
-    packet = rfm9x.receive() # Block until signal received
+    packet = rfm9x.receive()
     if packet is None:
         # Print the background noise level every few seconds
         print(f"Noise Floor: {rfm9x.last_rssi} dBm")
@@ -34,6 +34,13 @@ while True:
         try:
             if packet_text == "STARTMAIN":
                 print("Signal Received. Launching Main Program.")
+                # --- CRITICAL ADDITION ---
+                # Release the pins so the next script can use them
+                rfm9x.reset()  # Optional: Put radio in sleep/reset
+                spi.deinit()  # Release the SPI bus (SCK, MOSI, MISO)
+                cs.deinit()  # Release the Chip Select pin (CE0)
+                # -------------------------
+
                 # Execute Main and exit Listener
                 subprocess.Popen(["/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3", "/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py"])
                 sys.exit(0)
