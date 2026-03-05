@@ -2,7 +2,7 @@ import board
 import busio
 from digitalio import DigitalInOut
 import adafruit_rfm9x
-import subprocess
+import os
 import sys
 
 # Standard Startup Hardware Init
@@ -18,13 +18,18 @@ rfm9x.coding_rate = 5  # This represents 4/5 in many LoRa libraries
 rfm9x.low_data_rate_optimize = False # Match this to your GRC 'Off' setting
 rfm9x.sync_word = 0x12 # Match your GRC '18' setting
 
+lastRssi = 0
+
 print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
 started = False
 while not started:
     packet = rfm9x.receive()
     if packet is None:
         # Print the background noise level every few seconds
-        print(f"Noise Floor: {rfm9x.last_rssi} dBm")
+        rssi = rfm9x.last_rssi
+        if abs(lastRssi - rssi) > 5:
+            print(f"Noise Floor: {rssi} dBm")
+            lastRssi = rssi
     else:
         print("Packet Received!")
         # Convert bytes to string and strip whitespace/nulls
@@ -34,15 +39,15 @@ while not started:
         try:
             if packet_text == "STARTMAIN":
                 print("Signal Received. Launching Main Program.")
-                # --- CRITICAL ADDITION ---
+
                 # Release the pins so the next script can use them
                 rfm9x.reset()  # Optional: Put radio in sleep/reset
                 spi.deinit()  # Release the SPI bus (SCK, MOSI, MISO)
                 cs.deinit()  # Release the Chip Select pin (CE0)
-                # -------------------------
+
 
                 # Execute Main and exit Listener
-                subprocess.Popen(["/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3", "/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py"])
+                os.system("/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3 -u /home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py > /home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log 2>&1 &")
                 started = True
                 break
                 sys.exit(0)
