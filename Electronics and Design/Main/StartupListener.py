@@ -51,6 +51,12 @@ while not started:
 rfm9x.reset()  # Optional: Put radio in sleep/reset
 spi.deinit()  # Release the SPI bus (SCK, MOSI, MISO)
 cs.deinit()  # Release the Chip Select pin (CE0)
+reset.deinit()
+
+spi = None
+cs = None
+reset = None
+rfm9x = None
 
 # Execute Main and exit Listener
 os.system("'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 ")
