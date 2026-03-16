@@ -5,11 +5,13 @@ import adafruit_rfm9x
 import os, subprocess
 import sys
 
+from Main.LanderMain import LanderMain
+
 # Standard Startup Hardware Init
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
 cs = DigitalInOut(board.CE0)
 reset = DigitalInOut(board.D25)
-rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, 915.3)
+rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, 915.0)
 
 rfm9x.invert_iq = True
 rfm9x.spreading_factor = 7
@@ -38,7 +40,7 @@ while not started:
         print(f"Decoded: [{packet_text}]")
         try:
             if packet_text == "STARTMAIN":
-                print("Signal Received. Launching Main Program.")
+                print("Signal Received. ")
                 started = True
 
 
@@ -46,7 +48,7 @@ while not started:
 
         except:
             pass
-
+'''
 # Release the pins so the next script can use them
 rfm9x.reset()  # Optional: Put radio in sleep/reset
 spi.deinit()  # Release the SPI bus (SCK, MOSI, MISO)
@@ -62,5 +64,10 @@ rfm9x = None
 os.system("'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 ")
 #result = subprocess.run(["'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 &"], capture_output=True, text=True)
 #print(result.stdout)
+'''
+print("Launching Main Program.")
+lander = LanderMain(spi, cs, reset, rfm9x)
+lander.runMainLoop()
+print("Main Program finished!")
 
 sys.exit(0)
