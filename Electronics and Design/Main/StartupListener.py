@@ -11,7 +11,7 @@ from LanderMain import LanderMain
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
 cs = DigitalInOut(board.CE0)
 reset = DigitalInOut(board.D25)
-rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, 915.0)
+rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, 915)
 
 rfm9x.invert_iq = True
 rfm9x.spreading_factor = 7
@@ -42,11 +42,10 @@ while not started:
             if packet_text == "STARTMAIN":
                 print("Signal Received. ")
                 started = True
-
-
                 break
 
-        except:
+        except Exception as e:
+            print(e)
             pass
 '''
 # Release the pins so the next script can use them
