@@ -39,22 +39,22 @@ while not started:
         try:
             if packet_text == "STARTMAIN":
                 print("Signal Received. Launching Main Program.")
-
-                # Release the pins so the next script can use them
-                rfm9x.reset()  # Optional: Put radio in sleep/reset
-                spi.deinit()  # Release the SPI bus (SCK, MOSI, MISO)
-                cs.deinit()  # Release the Chip Select pin (CE0)
-
-
-                # Execute Main and exit Listener
-                #os.system("'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 &")
-                result = subprocess.run(["'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 &"],
-                                        capture_output=True, text=True)
-                print(result.stdout)
                 started = True
-                sys.exit(0)
+
+
                 break
 
         except:
             pass
+
+# Release the pins so the next script can use them
+rfm9x.reset()  # Optional: Put radio in sleep/reset
+spi.deinit()  # Release the SPI bus (SCK, MOSI, MISO)
+cs.deinit()  # Release the Chip Select pin (CE0)
+
+# Execute Main and exit Listener
+os.system("'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 ")
+#result = subprocess.run(["'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 &"], capture_output=True, text=True)
+#print(result.stdout)
+
 sys.exit(0)

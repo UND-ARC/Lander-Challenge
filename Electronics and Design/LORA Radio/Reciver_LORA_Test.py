@@ -72,7 +72,7 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         self.btn_trigger_start = btn_trigger_start = 0
         self.btn_trigger_ESTOP = btn_trigger_ESTOP = 0
         self.Spreading_Factor = Spreading_Factor = 7
-        self.IP = IP = "usb:1.15.5"
+        self.IP = IP = "ip:192.168.2.1"
         self.Frequency = Frequency = 915300000
 
         ##################################################
@@ -170,8 +170,8 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         # Connections
         ##################################################
         self.msg_connect((self.blocks_message_strobe_0, 'strobe'), (self.lora_tx_0, 'in'))
-        self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'print'))
         self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'log'))
+        self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'print'))
         self.connect((self.blocks_mute_xx_0, 0), (self.iio_pluto_sink_0, 0))
         self.connect((self.iio_pluto_source_0, 0), (self.lora_rx_0, 0))
         self.connect((self.iio_pluto_source_0, 0), (self.qtgui_freq_sink_x_0, 0))
