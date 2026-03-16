@@ -5,7 +5,7 @@ import adafruit_rfm9x
 import os, subprocess
 import sys
 
-from Main.LanderMain import LanderMain
+from LanderMain import LanderMain
 
 # Standard Startup Hardware Init
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
