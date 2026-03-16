@@ -72,6 +72,7 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         self.btn_trigger_start = btn_trigger_start = 0
         self.btn_trigger_ESTOP = btn_trigger_ESTOP = 0
         self.Spreading_Factor = Spreading_Factor = 7
+        self.IP = IP = "usb:1.15.5"
         self.Frequency = Frequency = 915300000
 
         ##################################################
@@ -136,7 +137,7 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
             sf=Spreading_Factor,
          ldro_mode=0,frame_zero_padd=1280,sync_word=[0x12] )
         self.lora_rx_0 = lora_sdr.lora_sdr_lora_rx( bw=125000, cr=1, has_crc=True, impl_head=False, pay_len=255, samp_rate=sample_rate, sf=Spreading_Factor, sync_word=[0x12], soft_decoding=False, ldro_mode=0, print_rx=[True,True])
-        self.iio_pluto_source_0 = iio.fmcomms2_source_fc32('ip:192.168.2.1' if 'ip:192.168.2.1' else iio.get_pluto_uri(), [True, True], 32768)
+        self.iio_pluto_source_0 = iio.fmcomms2_source_fc32(IP if IP else iio.get_pluto_uri(), [True, True], 32768)
         self.iio_pluto_source_0.set_len_tag_key('packet_len')
         self.iio_pluto_source_0.set_frequency(Frequency)
         self.iio_pluto_source_0.set_samplerate(sample_rate)
@@ -146,7 +147,7 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         self.iio_pluto_source_0.set_rfdc(True)
         self.iio_pluto_source_0.set_bbdc(True)
         self.iio_pluto_source_0.set_filter_params('Auto', '', 0, 0)
-        self.iio_pluto_sink_0 = iio.fmcomms2_sink_fc32('ip:192.168.2.1' if 'ip:192.168.2.1' else iio.get_pluto_uri(), [True, True], 32768, False)
+        self.iio_pluto_sink_0 = iio.fmcomms2_sink_fc32(IP if IP else iio.get_pluto_uri(), [True, True], 32768, False)
         self.iio_pluto_sink_0.set_len_tag_key('')
         self.iio_pluto_sink_0.set_bandwidth(20000000)
         self.iio_pluto_sink_0.set_frequency(Frequency)
@@ -212,6 +213,12 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
     def set_Spreading_Factor(self, Spreading_Factor):
         self.Spreading_Factor = Spreading_Factor
         self.lora_tx_0.set_sf(self.Spreading_Factor)
+
+    def get_IP(self):
+        return self.IP
+
+    def set_IP(self, IP):
+        self.IP = IP
 
     def get_Frequency(self):
         return self.Frequency

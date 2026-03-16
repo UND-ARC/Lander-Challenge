@@ -42,7 +42,19 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [672, 48.0]
+    coordinate: [480, 48.0]
+    rotation: 0
+    state: enabled
+- name: IP
+  id: variable
+  parameters:
+    comment: ''
+    value: '"usb:1.15.5"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [776, 48.0]
     rotation: 0
     state: enabled
 - name: Spreading_Factor
@@ -54,7 +66,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [784, 56.0]
+    coordinate: [592, 48.0]
     rotation: 0
     state: enabled
 - name: btn_trigger_ESTOP
@@ -210,7 +222,7 @@ blocks:
     len_tag_key: ''
     samplerate: sample_rate
     type: fc32
-    uri: ip:192.168.2.1
+    uri: IP
   states:
     bus_sink: false
     bus_source: false
@@ -241,7 +253,7 @@ blocks:
     rfdc: 'True'
     samplerate: sample_rate
     type: fc32
-    uri: ip:192.168.2.1
+    uri: IP
   states:
     bus_sink: false
     bus_source: false
