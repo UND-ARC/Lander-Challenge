@@ -6,13 +6,9 @@ from labjack import ljm
 
 class LabJackWorker(QtCore.QObject):
     # Signal to send the voltage to the UI
-    #voltage_received = QtCore.pyqtSignal(float)
+    # voltage_received = QtCore.pyqtSignal(float)
     labjack_signals = QtCore.pyqtSignal(dict)
     error_occurred = QtCore.pyqtSignal(str)
-
-    #AIN 0-5 pressures, 12-13 temps
-    channels_to_read = ["AIN0", "AIN1", "AIN2", "AIN3", "AIN4", "AIN5", "AIN6", "AIN12", "AIN13"]
-    num_channels = len(channels_to_read)
 
     def __init__(self):
         super().__init__()
@@ -27,6 +23,17 @@ class LabJackWorker(QtCore.QObject):
 
 
 
+        self.channels_to_read = []
+        # pressures
+        for i in range(20):
+            if i == 13 or i == 14:
+                continue
+            self.channels_to_read.append(f"AIN{i}")
+
+        self.num_channels = len(self.channels_to_read)
+
+
+
     def run(self):
         try:
             self.handle = ljm.openS("T7", "ANY", "ANY")
@@ -37,37 +44,30 @@ class LabJackWorker(QtCore.QObject):
                 #value = 3.14  # Simulated reading
                 results = ljm.eReadNames(self.handle, self.num_channels, self.channels_to_read)
 
-                #pressures
-                pressure0 = results[0]
-                pressure1 = results[1]
-                pressure2 = results[2]
-                pressure3 = results[3]
-                pressure4 = results[4]
-                pressure5 = results[5]
-                pressure6 = results[6]
-
-                #Temps
-                temp12 = results[7]
-                temp13 = results[8]
 
                 # TODO scale pressure values
-                PT_01 = scale_value(pressure0, 0, 24, 0, 24)
-                PT_02 = scale_value(pressure1, 0, 24, 0, 24)
-                PT_03 = scale_value(pressure2, 0, 24, 0, 24)
-                PT_04 = scale_value(pressure3, 0, 24, 0, 24)
-                PT_05 = scale_value(pressure4, 0, 24, 0, 24)
-                PT_06 = scale_value(pressure5, 0, 24, 0, 24)
-                PT_07 = scale_value(pressure6, 0, 24, 0, 24)
+                PT_00 = scale_value(results[0], 0, 24, 0, 24)
+                PT_01 = scale_value(results[1], 0, 24, 0, 24)
+                PT_02 = scale_value(results[2], 0, 24, 0, 24)
+                PT_03 = scale_value(results[3], 0, 24, 0, 24)
+                PT_04 = scale_value(results[4], 0, 24, 0, 24)
+                PT_05 = scale_value(results[5], 0, 24, 0, 24)
+                PT_06 = scale_value(results[6], 0, 24, 0, 24)
+                PT_07 = scale_value(results[7], 0, 24, 0, 24)
+                PT_08 = scale_value(results[8], 0, 24, 0, 24)
+                PT_09 = scale_value(results[9], 0, 24, 0, 24)
+                PT_10 = scale_value(results[10], 0, 24, 0, 24)
+                PT_11 = scale_value(results[11], 0, 24, 0, 24)
+                PT_12 = scale_value(results[12], 0, 24, 0, 24)
 
-                CH4Temp = scale_value(temp12, 0, 10, -150, 1370)
-                GOXTemp = scale_value(temp13, 0, 10, -150, 1370)
-
-
-
+                TC_15 = scale_value(results[13], 0, 10, -150, 1370)
+                TC_16 = scale_value(results[14], 0, 10, -150, 1370)
+                TC_17 = scale_value(results[15], 0, 10, -150, 1370)
+                TC_18 = scale_value(results[16], 0, 10, -150, 1370)
+                TC_19 = scale_value(results[17], 0, 10, -150, 1370)
 
                 output = {
-                    "CH4Temp": CH4Temp,
-                    "GOXTemp": GOXTemp,
+                    "PT-00": PT_00,
                     "PT-01" : PT_01,
                     "PT-02" : PT_02,
                     "PT-03" : PT_03,
@@ -75,6 +75,16 @@ class LabJackWorker(QtCore.QObject):
                     "PT-05" : PT_05,
                     "PT-06" : PT_06,
                     "PT-07" : PT_07,
+                    "PT-08" : PT_08,
+                    "PT-09" : PT_09,
+                    "PT-10" : PT_10,
+                    "PT-11" : PT_11,
+                    "PT-12" : PT_12,
+                    "TC_15": TC_15,
+                    "TC_16": TC_16,
+                    "TC_17": TC_17,
+                    "TC_18": TC_18,
+                    "TC_19": TC_19
                 }
 
                 if self.loggingEnabled:
@@ -125,7 +135,9 @@ class LabJackWorker(QtCore.QObject):
                 self.csv_writer = csv.writer(self.log_file)
 
                 # 3. Write headers
-                self.csv_writer.writerow(["Timestamp", "CH4Temp", "GOXTemp", "PT-01", "PT-02", "PT-03", "PT-04", "PT-05", "PT-06", "PT-07"])
+                header = ["Timestamp"]
+                header.extend(self.channels_to_read)
+                self.csv_writer.writerow(header)
 
                 # 4. Initialize flush counter
                 self.flush_counter = 0

@@ -1,14 +1,10 @@
 import sys, os
-# MUST happen before importing pyqtgraph
-os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt6'
-import pyqtgraph as pg
 from PyQt6 import QtCore, QtWidgets
-from collections import deque
 from LabJackWorker import LabJackWorker
 #from PyQt6 import uic
 from MainWindow import Ui_MainWindow
 from GraphWindow import GraphWindow
-import math
+import math, time
 
 
 
@@ -33,13 +29,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Connect signals
         self.thread.started.connect(self.worker.run)
-        #self.worker.voltage_received.connect(self.update_lcd)
         self.worker.error_occurred.connect(self.handle_error)
         self.worker.labjack_signals.connect(self.displayLabjackValues)
 
-
-
         self.thread.start()
+        #time.sleep(5)
 
         # Initialize the timers
         self.testTimerProgressBar = QtCore.QTimer()
@@ -63,21 +57,26 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.current_step = 0
         self.total_steps = 0
 
-        # Connect the button
+        # Connect the buttons
         self.StartTest.clicked.connect(self.start_test)
 
-        self.NitrogenPurge.clicked.connect(self.nitrogenPurgeClicked)
 
-        self.manualValveControl(False)
-        self.ManualValveControl.clicked.connect(self.manualValveControl)
+        self.ManOverride.clicked.connect(self.manOverride)
+        self.manOverride(False)
+        self.ManSpark.clicked.connect(self.manSpark)
+        self.manSpark(False)
+        self.ManPurgeBoth.clicked.connect(self.manPurgeBoth)
+        self.manPurgeBoth(False)
+        self.ManPurgeGOX.clicked.connect(self.manPurgeGOX)
+        self.manPurgeGOX(False)
+        self.ManPurgeCH4.clicked.connect(self.manPurgeCH4)
+        self.manPurgeCH4(False)
+        self.ManGOXValve.clicked.connect(self.manGOXValve)
+        self.manGOXValve(False)
+        self.ManCH4Valve.clicked.connect(self.manCH4Valve)
+        self.manCH4Valve(False)
 
-        self.GOX_Valve.clicked.connect(self.manualGOXControl)
-        self.CH4_Valve.clicked.connect(self.manualCH4Control)
 
-        self.manualIgnitionControl(False)
-        self.ManualIgitionControl.clicked.connect(self.manualIgnitionControl)
-
-        self.Ignitor.clicked.connect(self.manualSparkControl)
 
         self.setLoggingEnabled(False)
         self.DataLogging.clicked.connect(self.setLoggingEnabled)
@@ -85,11 +84,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.ESTOP.clicked.connect(self.eStop)
         self.KillIgnitor.clicked.connect(self.killIgnitor)
 
-        # start all valves closed
-        self.closeCH4Valve()
-        self.closeGOXValve()
-        self.stopFireSparkPlug()
-        self.closeNitrogenValve()
 
 
     def start_test(self):
@@ -162,29 +156,55 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.closeGOXValve()
         self.stopFireSparkPlug()
 
-    def manualValveControl(self, checked):
+    def manOverride(self, checked):
         if checked:
-            self.ManualValveControl.setText("Manual")
-            self.NitrogenPurge.setEnabled(True)
-            self.GOX_Valve.setEnabled(True)
-            self.CH4_Valve.setEnabled(True)
+            self.ManSpark.setEnabled(True)
+            self.ManPurgeBoth.setEnabled(True)
+            self.ManPurgeGOX.setEnabled(True)
+            self.ManPurgeCH4.setEnabled(True)
+            self.ManGOXValve.setEnabled(True)
+            self.ManCH4Valve.setEnabled(True)
 
         else:
-            self.ManualValveControl.setText("AUTO")
-            self.NitrogenPurge.setEnabled(False)
-            self.GOX_Valve.setEnabled(False)
-            self.CH4_Valve.setEnabled(False)
+            self.ManSpark.setEnabled(False)
+            self.ManPurgeBoth.setEnabled(False)
+            self.ManPurgeGOX.setEnabled(False)
+            self.ManPurgeCH4.setEnabled(False)
+            self.ManGOXValve.setEnabled(False)
+            self.ManCH4Valve.setEnabled(False)
 
-    def manualIgnitionControl(self, checked):
+    def manSpark(self, checked):
         if checked:
-            self.ManualIgitionControl.setText("Manual")
-            self.Ignitor.setEnabled(True)
+            self.startFireSparkPlug()
 
         else:
-            self.ManualIgitionControl.setText("AUTO")
-            self.Ignitor.setEnabled(False)
+            self.stopFireSparkPlug()
 
-    def manualCH4Control(self, checked):
+    def manPurgeBoth(self, checked):
+        if checked:
+            self.openBothNitrogenValves()
+        else:
+            self.closeBothNitrogenValves()
+
+    def manPurgeGOX(self, checked):
+        if checked:
+            self.openNitrogenValveGOX()
+        else:
+            self.closeNitrogenValveGOX()
+
+    def manPurgeCH4(self, checked):
+        if checked:
+            self.openNitrogenValveCH4()
+        else:
+            self.closeNitrogenValveCH4()
+
+    def manGOXValve(self, checked):
+        if checked:
+            self.openGOXValve()
+        else:
+            self.closeGOXValve()
+
+    def manCH4Valve(self, checked):
         if checked:
             self.openCH4Valve()
 
@@ -192,28 +212,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.closeCH4Valve()
 
 
-    def manualGOXControl(self, checked):
-        if checked:
-            self.openGOXValve()
-        else:
-            self.closeGOXValve()
-
-
-    def manualSparkControl(self, checked):
-        if checked:
-            self.startFireSparkPlug()
-
-        else:
-            self.stopFireSparkPlug()
-
     def eStop(self, checked):
         if checked:
             print("Emergency Stop!")
             self.closeCH4Valve()
             self.closeGOXValve()
             self.stopFireSparkPlug()
-            #TODO do we want the nitrogen to open after a estop?
-            # self.openNitrogenValve()
+            self.openBothNitrogenValves()
 
     def killIgnitor(self, checked):
         if checked:
@@ -235,38 +240,87 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.ESTOP.isChecked():
             return #if estop is on we don't want fire
         print("Opening GOX Valve!")
-        self.GOX_Valve.setText("OPEN")
-        self.GOXValveIndicator.setCurrentWidget(self.GOX_Open)
-        self.GOXValveIndicator.show()
-        self.worker.write_value("FIO7", 1)
+        self.ManGOXValve.setText("OPEN")
+        self.worker.write_value("FIO3", 1)
 
     def closeGOXValve(self):
         print("Closing GOX Valve!")
-        self.GOX_Valve.setText("CLOSE")
-        self.GOXValveIndicator.setCurrentWidget(self.GOX_Closed)
-        self.GOXValveIndicator.show()
-        self.worker.write_value("FIO7", 0)
+        self.ManGOXValve.setText("CLOSE")
+        self.worker.write_value("FIO3", 0)
 
     def openCH4Valve(self):
         if self.ESTOP.isChecked():
             return  # if estop is on we don't want fire
         print("Opening CH4 Valve!")
-        self.CH4_Valve.setText("OPEN")
-        self.CH4ValveIndicator.setCurrentWidget(self.CH4_Open)
-        self.CH4ValveIndicator.show()
-        self.worker.write_value("FIO6", 1)
+        self.ManCH4Valve.setText("OPEN")
+        self.worker.write_value("FIO4", 1)
 
     def closeCH4Valve(self):
         print("Closing CH4 Valve!")
-        self.CH4_Valve.setText("CLOSE")
-        self.CH4ValveIndicator.setCurrentWidget(self.CH4_Closed)
-        self.CH4ValveIndicator.show()
+        self.ManCH4Valve.setText("CLOSE")
+        self.worker.write_value("FIO4", 0)
+
+    def openBothNitrogenValves(self):
+        print("Opening Both Nitrogen Valves!")
+        self.ManPurgeBoth.setText("OPEN")
+        self.openNitrogenValveGOX()
+        self.openNitrogenValveCH4()
+
+    def closeBothNitrogenValves(self):
+        print("Closing Both Nitrogen Valves!")
+        self.ManPurgeBoth.setText("CLOSED")
+        self.closeNitrogenValveGOX()
+        self.closeNitrogenValveCH4()
+
+    def openNitrogenValveGOX(self):
+        print("Opening Nitrogen Valve GOX!")
+        self.ManPurgeGOX.setText("OPEN")
+        self.worker.write_value("FIO1", 1)
+
+
+    def closeNitrogenValveGOX(self):
+        print("Closing Nitrogen Valve GOX!")
+        self.ManPurgeGOX.setText("CLOSE")
+        self.worker.write_value("FIO1", 0)
+
+    def openNitrogenValveCH4(self):
+        print("Opening Nitrogen Valve Ch4!")
+        self.ManPurgeCH4.setText("OPEN")
+        self.worker.write_value("FIO2", 1)
+
+
+    def closeNitrogenValveCH4(self):
+        print("Closing Nitrogen Valve CH4!")
+        self.ManPurgeCH4.setText("CLOSE")
+        self.worker.write_value("FIO2", 0)
+
+
+    def startFireSparkPlug(self):
+        if self.ESTOP.isChecked() or self.KillIgnitor.isChecked():
+            return #if estop is on we don't want fire
+        print("Start Fire Spark Plug!")
+        self.ManSpark.setText("ON")
+        self.worker.write_value("FIO6", 1)
+        self.sparkTimer.start(333)
+
+
+    def stopFireSparkPlug(self):
+        print("Stopped Fire Spark Plug!")
+        self.ManSpark.setText("OFF")
+
+        self.sparkTimer.stop()
         self.worker.write_value("FIO6", 0)
+        self.worker.write_value("FIO5", 0)
+
+    def toggleSparkRelay(self):
+        if self.sparkRelayOn:
+            self.worker.write_value("FIO5", 0)
+        else:
+            self.worker.write_value("FIO5", 1)
 
     def displayLabjackValues(self, values):
         # Format to 2 decimal place
-        self.TC_01.setText(f'{values["CH4Temp"]:.2f} °C')
-        self.TC_02.setText(f'{values["GOXTemp"]:.2f} °C')
+        self.PT_00.setText(f'{values["PT-00"]:.2f} psi')
         self.PT_01.setText(f'{values["PT-01"]:.2f} psi')
         self.PT_02.setText(f'{values["PT-02"]:.2f} psi')
         self.PT_03.setText(f'{values["PT-03"]:.2f} psi')
@@ -274,26 +328,41 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.PT_05.setText(f'{values["PT-05"]:.2f} psi')
         self.PT_06.setText(f'{values["PT-06"]:.2f} psi')
         self.PT_07.setText(f'{values["PT-07"]:.2f} psi')
+        self.PT_08.setText(f'{values["PT-08"]:.2f} psi')
+        self.PT_09.setText(f'{values["PT-09"]:.2f} psi')
+        self.PT_10.setText(f'{values["PT-10"]:.2f} psi')
+        self.PT_11.setText(f'{values["PT-11"]:.2f} psi')
+        self.PT_12.setText(f'{values["PT-12"]:.2f} psi')
+
+        self.TC_15.setText(f'{values["TC-15"]:.2f} °C')
+        self.TC_16.setText(f'{values["TC-16"]:.2f} °C')
+        self.TC_17.setText(f'{values["TC-17"]:.2f} °C')
+        self.TC_18.setText(f'{values["TC-18"]:.2f} °C')
+        self.TC_19.setText(f'{values["TC-19"]:.2f} °C')
 
 
-        #TODO set Cd
-        GOXMassFlowRate, GOXFlowRegime = calculate_mass_flow_real(values["PT_01"], values["PT_03"], values["GOXTemp"], 25, 'Oxygen', 0.62)
 
-        self.GOXMassRate.setText(f'{GOXMassFlowRate:.2f} km/h')
-        if GOXFlowRegime == "Choked":
-            self.GOXMassRate.setStyleSheet("background-color: blue; color: white;")
+
+        GOXMassFlowRate, GOXFlowChoked = calculate_flow(values["PT-01"], values["PT-02"], values["TC-15"], "O2")
+
+        self.MdotGOX.setText(f'{GOXMassFlowRate:.2f} km/h')
+        if GOXFlowChoked:
+            self.MdotGOX.setStyleSheet("background-color: blue; color: white;")
         else:
-            self.GOXMassRate.setStyleSheet("background-color: yellow; color: black;")
+            self.MdotGOX.setStyleSheet("background-color: yellow; color: black;")
 
-        CH4MassFlowRate, CH4FlowRegime = calculate_mass_flow_real(values["PT_01"], values["PT_03"], values["GOXTemp"], 25, 'Methane', 0.62)
+        CH4MassFlowRate, CH4FlowChoked = calculate_flow(values["PT-05"], values["PT-06"], values["TC-17"], "CH4")
 
-        self.CH4MassRate.setText(f'{CH4MassFlowRate:.2f} km/h')
-        if CH4FlowRegime == "Choked":
-            self.CH4MassRate.setStyleSheet("background-color: blue; color: white;")
+        self.MdotCH4.setText(f'{CH4MassFlowRate:.2f} km/h')
+        if CH4FlowChoked:
+            self.MdotCH4.setStyleSheet("background-color: blue; color: white;")
         else:
-            self.CH4MassRate.setStyleSheet("background-color: yellow; color: black;")
+            self.MdotCH4.setStyleSheet("background-color: yellow; color: black;")
 
-        if (values["PT-03"] > self.UpperO2.value()) or (values["PT-03"] < self.LowerO2.value()) or (values["PT-04"] > self.UpperO2.value()) or (values["PT-04"] < self.LowerO2.value()):
+        upperAlertPressure = 10000
+        lowerAlertPressure = 10
+        if (values["PT-03"] > upperAlertPressure) or (values["PT-03"] < lowerAlertPressure) or (values["PT-04"] > upperAlertPressure) or (values["PT-04"] < lowerAlertPressure):
+
             self.PressureAlarm.setCurrentWidget(self.Alarm)
             self.PressureAlarm.show()
         else:
@@ -323,50 +392,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.GraphWindow.show()
 
 
-    def nitrogenPurgeClicked(self, checked):
-        if checked:
-            self.NitrogenPurge.setText("ON")
-            self.openNitrogenValve()
-        else:
-            self.NitrogenPurge.setText("OFF")
-            self.closeNitrogenValve()
 
-    def openNitrogenValve(self):
-        print("Opening Nitrogen Valve!")
-        self.worker.write_value("FIO4", 1)
-
-
-    def closeNitrogenValve(self):
-        print("Closing Nitrogen Valve!")
-        self.worker.write_value("FIO4", 0)
-
-
-    def startFireSparkPlug(self):
-        if self.ESTOP.isChecked() or self.KillIgnitor.isChecked():
-            return #if estop is on we don't want fire
-        print("Start Fire Spark Plug!")
-        self.Ignitor.setText("ON")
-        self.IgnitorIndicator.setCurrentWidget(self.Ignitor_On)
-        self.IgnitorIndicator.show()
-        self.worker.write_value("FIO4", 1)
-        self.sparkTimer.start(333)
-
-
-    def stopFireSparkPlug(self):
-        print("Stopped Fire Spark Plug!")
-        self.Ignitor.setText("OFF")
-        self.IgnitorIndicator.setCurrentWidget(self.Ignitor_Off)
-        self.IgnitorIndicator.show()
-
-        self.sparkTimer.stop()
-        self.worker.write_value("FIO0", 0)
-        self.worker.write_value("FIO4", 0)
-
-    def toggleSparkRelay(self):
-        if self.sparkRelayOn:
-            self.worker.write_value("FIO0", 0)
-        else:
-            self.worker.write_value("FIO0", 1)
 
 
     def handle_error(self, err_msg):
@@ -382,47 +408,31 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
 def calculate_flow(P1_psi, P2_psi, T1_C, Cv, gas_type='O2'):
-    """
-    Calculates mass flow rate using psi and Celsius inputs.
-    Based on manufacturer Cv equations converted to SI.
-    https://tameson.com/pages/cv-calculator
-    """
-    # 1. Unit Conversions to SI
-    # 1 psi = 6894.76 Pascals
-    p1 = P1_psi * 6894.76
-    p2 = P2_psi * 6894.76
-    # Celsius to Kelvin
-    t1 = T1_C + 273.15
+    #TODO constants
+    c_d = 0.8
+    A = -1
+    y = -1
+    R = -1
+    T = T1_C + 273.15
+    if gas_type == 'O2':
+        y = 1.4
+        A = 0.03125
+        R = 259.8 # kg / (m*s^2)
+    elif gas_type == 'CH4':
+        y = 1.3
+        A = 0.03125
+        R = 519.6 # kg / (m*s^2)
 
-    # 2. Gas Properties at Standard Conditions (1 atm, 15°C)
-    # G: Specific Gravity (O2=1.1, CH4=0.55)
-    # rho_std: Density at standard conditions (kg/m^3)
-    gas_props = {
-        'O2':  {'G': 1.10, 'rho_std': 1.331},
-        'CH4': {'G': 0.55, 'rho_std': 0.668}
-    }
+    choked = True
 
-    G = gas_props[gas_type]['G']
-    rho_std = gas_props[gas_type]['rho_std']
+    if choked:
+        #for choked flow
+        m_dot = c_d * A * P1_psi * math.sqrt(y/(R*T))*math.pow(2/(y+1),(y+1)/(2*(y-1)))
 
-    # 3. Determine Flow Regime (Subcritical vs Supercritical)
-    # Using the P1/2 threshold from your provided reference image
-    if p2 > (p1 / 2):
-        # SUBCRITICAL (Subsonic)
-        # Constant 0.000256 is the SI conversion for the '963' imperial constant
-        q_std = (Cv / 0.000256) * math.sqrt((p1**2 - p2**2) / (G * t1))
-        regime = "Subcritical"
     else:
-        # SUPERCRITICAL (Choked)
-        # Constant 0.000432 is the SI conversion for the '816' imperial constant
-        q_std = (Cv * p1 / 0.000432) * math.sqrt(1 / (G * t1))
-        regime = "Supercritical (Choked)"
+        m_dot = 1
 
-    # 4. Final Mass Flow Calculation
-    # m_dot = Volumetric Flow at Std * Density at Std
-    m_dot = q_std * rho_std
-
-    return m_dot, regime
+    return m_dot, choked
 
 
 
