@@ -8,7 +8,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-from collections import deque
 
 import numpy as np
 from dearpygui import dearpygui as dpg
@@ -20,16 +19,59 @@ from labjack import ljm
 # ============================================================
 GUI_HZ = 10.0
 WINDOW_SECONDS = 10.0
-
+DEFAULT_STREAM_HZ = 300
 MIN_STREAM_HZ = 5
 MAX_STREAM_HZ = 500
-DEFAULT_STREAM_HZ = 100.0
-
 DEFAULT_THRESHOLD_V = 12.0
 DEFAULT_SHUTDOWN_PIN = "FIO7"
 
 # T7 reads these inputs
-AIN_NAMES = ["AIN0", "AIN1", "AIN2"]
+AIN_NAMES = [
+    *[f"AIN{i}" for i in range(0, 8)],      # 8 cryo RTDs
+    *[f"AIN{i}" for i in range(8, 16)],     # 8 cryo pressure
+    *[f"AIN{i}" for i in range(16, 19)],    # 3 load cells
+    *[f"AIN{i}" for i in range(19, 39)],    # 20 non-cryo pressure
+    *[f"AIN{i}" for i in range(39, 56)],    # 17 thermocouples
+]
+
+CHANNEL_GROUPS = {
+    "cryo_rtd": AIN_NAMES[0:8],
+    "cryo_pressure": AIN_NAMES[8:16],
+    "load_cells": AIN_NAMES[16:19],
+    "noncryo_p1": AIN_NAMES[19:27],
+    "noncryo_p2": AIN_NAMES[27:35],
+    "noncryo_p3_bar": AIN_NAMES[35:39],
+    "tc_1": AIN_NAMES[39:45],
+    "tc_2": AIN_NAMES[45:51],
+    "tc_3": AIN_NAMES[51:56],
+}
+
+CHANNEL_THRESHOLDS = {
+    # 8 cryo RTDs (0–10V)
+    "AIN0": 9.5, "AIN1": 9.5, "AIN2": 9.5, "AIN3": 9.5,
+    "AIN4": 9.5, "AIN5": 9.5, "AIN6": 9.5, "AIN7": 9.5,
+
+    # 8 cryo pressure (0–5V)
+    "AIN8": 4.5, "AIN9": 4.5, "AIN10": 4.5, "AIN11": 4.5,
+    "AIN12": 4.5, "AIN13": 4.5, "AIN14": 4.5, "AIN15": 4.5,
+
+    # 3 load cells (0–10V)
+    "AIN16": 9.5, "AIN17": 9.5, "AIN18": 9.5,
+
+    # 20 non-cryo pressure (0–10V)
+    "AIN19": 9.5, "AIN20": 9.5, "AIN21": 9.5, "AIN22": 9.5,
+    "AIN23": 9.5, "AIN24": 9.5, "AIN25": 9.5, "AIN26": 9.5,
+    "AIN27": 9.5, "AIN28": 9.5, "AIN29": 9.5, "AIN30": 9.5,
+    "AIN31": 9.5, "AIN32": 9.5, "AIN33": 9.5, "AIN34": 9.5,
+    "AIN35": 9.5, "AIN36": 9.5, "AIN37": 9.5, "AIN38": 9.5,
+
+    # 17 thermocouples (0–10V)
+    "AIN39": 9.5, "AIN40": 9.5, "AIN41": 9.5, "AIN42": 9.5,
+    "AIN43": 9.5, "AIN44": 9.5, "AIN45": 9.5, "AIN46": 9.5,
+    "AIN47": 9.5, "AIN48": 9.5, "AIN49": 9.5, "AIN50": 9.5,
+    "AIN51": 9.5, "AIN52": 9.5, "AIN53": 9.5, "AIN54": 9.5,
+    "AIN55": 9.5,
+}
 
 # T4 controls these outputs
 DIGITAL_OUTPUTS = [
@@ -193,7 +235,6 @@ class LabJackApp:
 
         self.requested_stream_hz = DEFAULT_STREAM_HZ
         self.actual_stream_hz = 0.0
-        self.threshold_v = DEFAULT_THRESHOLD_V
         self.shutdown_pin = DEFAULT_SHUTDOWN_PIN
 
         self.app_start = time.perf_counter()
@@ -228,6 +269,8 @@ class LabJackApp:
         self._status_text = "Status: starting…"
         self._gui_state_lock = threading.Lock()
         self._updating_dio_widgets = False
+
+        self.sensor_fault = {ch: False for ch in AIN_NAMES}
 
         self._build_gui()
         self.start_run()
@@ -457,25 +500,23 @@ class LabJackApp:
 
                 arr = arr[: n_scans * n_ch].reshape((n_scans, n_ch))
 
-                threshold_v = float(self.threshold_v)
+                for i, ch in enumerate(AIN_NAMES):
+                    ch_data = arr[:, i]
 
-                valid = np.isfinite(arr)
+                    if ch_data.size == 0:
+                        continue
 
-                if threshold_v > 0.0 and np.any(valid & (arr > threshold_v)):
-                    max_seen = float(np.nanmax(arr[valid])) if np.any(valid) else float("nan")
-                    self.log_event(
-                        f"THRESHOLD_TRIGGERED threshold={threshold_v:.6f}V max_seen={max_seen:.6f}V"
-                    )
-                    try:
-                        if self.t4_handle is not None:
-                            ljm.eWriteName(self.t4_handle, self.shutdown_pin, 1.0)
-                    except Exception:
-                        pass
-                    self.stop_event.set()
-                    self._set_status(
-                        f"Threshold triggered: max={max_seen:.3f} V > threshold={threshold_v:.3f} V"
-                    )
-                    break
+                    max_val = float(np.nanmax(ch_data)) if np.any(np.isfinite(ch_data)) else 0.0
+
+                    if max_val > 10.0:
+                        self.sensor_fault[ch] = True
+                        continue
+                    else:
+                        self.sensor_fault[ch] = False
+
+                    th = CHANNEL_THRESHOLDS.get(ch, None)
+                    if th is not None and max_val > th:
+                        self.log_event(f"THRESHOLD {ch} {max_val:.3f} > {th:.3f}")
 
                 block = RawBlock(
                     start_index=sample_index,
@@ -778,16 +819,6 @@ class LabJackApp:
                     tag="stream_hz_input",
                 )
                 dpg.add_button(label="Apply Stream Rate", callback=lambda: self._on_restart())
-
-                dpg.add_text("Threshold (V):")
-                dpg.add_input_float(
-                    default_value=float(self.threshold_v),
-                    width=120,
-                    format="%.3f",
-                    tag="threshold_input",
-                    callback=lambda: self._on_threshold_change(),
-                )
-
                 dpg.add_button(label="Stop + Save CSV + Exit", callback=lambda: self.kill_switch())
 
             dpg.add_separator()
@@ -802,7 +833,7 @@ class LabJackApp:
             dpg.add_separator()
 
             with dpg.group(horizontal=True):
-                with dpg.child_window(width=320, height=-1, border=True):
+                with dpg.child_window(width=220, height=-1, border=True):
                     dpg.add_text("Outputs on T4")
                     dpg.add_separator()
 
@@ -817,22 +848,45 @@ class LabJackApp:
                     dpg.add_separator()
                     dpg.add_text("", tag="metrics_text")
 
-                with dpg.child_window(width=-1, height=-1, border=False):
-                    dpg.add_text("Inputs streamed from T7")
-                    for ch in AIN_NAMES:
-                        with dpg.plot(
-                                label=f"{ch} (last {int(WINDOW_SECONDS)}s)",
-                                height=290,
-                                width=-1,
-                                no_menus=True,
-                                no_box_select=True,
-                                no_mouse_pos=True
-                        ):
-                            dpg.add_plot_legend()
-                            dpg.add_plot_axis(dpg.mvXAxis, label="Time (s)", tag=f"x_axis_{ch}")
-                            y_axis = dpg.add_plot_axis(dpg.mvYAxis, label="Voltage", tag=f"y_axis_{ch}")
-                            dpg.set_axis_limits(y_axis, Y_MIN, Y_MAX)
-                            dpg.add_line_series([], [], parent=y_axis, tag=f"series_{ch}", label=ch)
+                with dpg.table(header_row=False, resizable=True):
+                    dpg.add_table_column()
+                    dpg.add_table_column()
+
+                    group_items = list(CHANNEL_GROUPS.items())
+
+                    for i in range(0, len(group_items), 2):
+                        with dpg.table_row():
+
+                            for j in range(2):
+                                if i + j >= len(group_items):
+                                    dpg.add_spacer()
+                                    continue
+
+                                group_name, channels = group_items[i + j]
+
+                                with dpg.table_cell():
+
+                                    if "bar" in group_name:
+                                        with dpg.group(horizontal=True):
+                                            for ch in channels:
+                                                dpg.add_progress_bar(
+                                                    default_value=0.0,
+                                                    overlay=ch,
+                                                    tag=f"bar_{ch}",
+                                                    width=40,
+                                                    height=180,
+                                                )
+                                        continue
+
+                                    with dpg.plot(label=group_name, height=220, width=-1):
+                                        dpg.add_plot_legend()
+                                        dpg.add_plot_axis(dpg.mvXAxis, tag=f"x_axis_{group_name}")
+                                        y_axis = dpg.add_plot_axis(dpg.mvYAxis, tag=f"y_axis_{group_name}")
+                                        dpg.set_axis_limits(y_axis, Y_MIN, Y_MAX)
+
+                                        for ch in channels:
+                                            dpg.add_line_series([], [], parent=y_axis, tag=f"series_{ch}", label=ch)
+                                            dpg.add_scatter_series([], [], parent=y_axis, tag=f"fault_{ch}")
 
         dpg.create_viewport(
             title="LabJack T7/T4 DAQ",
@@ -862,13 +916,6 @@ class LabJackApp:
         self.requested_stream_hz = float(val)
         self.restart_run()
 
-    def _on_threshold_change(self):
-        val = float(dpg.get_value("threshold_input"))
-        if val < 0.0:
-            val = 0.0
-        self.threshold_v = val
-        self.log_event(f"THRESHOLD_SET {val:.6f}")
-
     def _on_dio_toggle(self, dio_name: str):
         if self._updating_dio_widgets:
             return
@@ -892,7 +939,7 @@ class LabJackApp:
                 break
 
             idxs = slice(0, block.n_scans, decim)
-            if idxs.size == 0:
+            if block.n_scans == 0:
                 continue
 
             t_out = (block.start_index + np.arange(0, block.n_scans, decim)) / scan_hz
@@ -912,19 +959,35 @@ class LabJackApp:
 
         self._drain_display_queue()
 
-        for ch in AIN_NAMES:
-            MAX_POINTS = 300
+        for group_name, channels in CHANNEL_GROUPS.items():
 
-            t, y = self.display_ring.snapshot_channel(ch)
-            if t.size >= 2:
-                if t.size > MAX_POINTS:
-                    idx = np.linspace(0, t.size - 1, MAX_POINTS).astype(np.int64)
-                    t = t[idx]
-                    y = y[idx]
+            # BAR GROUP
+            if "bar" in group_name:
+                for ch in channels:
+                    val = self.latest_display_values[ch]
+                    norm = max(0.0, min(1.0, val / 10.0))
+                    dpg.set_value(f"bar_{ch}", norm)
+                continue
 
-                t_disp = t - float(t[-1])
-                dpg.set_value(f"series_{ch}", [t_disp, y])
-                dpg.set_axis_limits(f"x_axis_{ch}", -WINDOW_SECONDS, 0.0)
+            # GRAPH GROUP
+            for ch in channels:
+                t, y = self.display_ring.snapshot_channel(ch)
+
+                if t.size >= 2:
+                    if t.size > 300:
+                        idx = np.linspace(0, t.size - 1, 300).astype(np.int64)
+                        t = t[idx]
+                        y = y[idx]
+
+                    t_disp = t - float(t[-1])
+                    dpg.set_value(f"series_{ch}", [t_disp, y])
+
+                    if self.sensor_fault[ch] and t.size > 0:
+                        dpg.set_value(f"fault_{ch}", [[t_disp[-1]], [y[-1]]])
+                    else:
+                        dpg.set_value(f"fault_{ch}", [[], []])
+
+            dpg.set_axis_limits(f"x_axis_{group_name}", -WINDOW_SECONDS, 0.0)
 
         with self._gui_state_lock:
             dpg.set_value("status_text", self._status_text)
@@ -947,10 +1010,6 @@ class LabJackApp:
             f"actual={self.actual_stream_hz:.1f} Hz (req {self.requested_stream_hz:.0f})\n"
             f"device backlog={self.latest_device_backlog}\n"
             f"ljm backlog={self.latest_ljm_backlog}\n"
-            f"threshold={self.threshold_v:.3f} V\n"
-            f"AIN0 display={self.latest_display_values['AIN0']:.6f}\n"
-            f"AIN1 display={self.latest_display_values['AIN1']:.6f}\n"
-            f"AIN2 display={self.latest_display_values['AIN2']:.6f}\n"
             f"binary={self.bin_path}\n"
             f"events={self.events_path}\n"
             f"csv={self.csv_path}\n"
