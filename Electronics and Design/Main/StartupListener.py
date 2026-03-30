@@ -25,13 +25,14 @@ lastRssi = 0
 print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
 started = False
 while not started:
+    print("Heartbeat...")
     packet = rfm9x.receive()
     if packet is None:
         # Print the background noise level every few seconds
         rssi = rfm9x.last_rssi
-        if abs(lastRssi - rssi) > 5:
-            print(f"Noise Floor: {rssi} dBm")
-            lastRssi = rssi
+        #if abs(lastRssi - rssi) > 5:
+        print(f"Noise Floor: {rssi} dBm")
+            #lastRssi = rssi
     else:
         print("Packet Received!")
         # Convert bytes to string and strip whitespace/nulls
