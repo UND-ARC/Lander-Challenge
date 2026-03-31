@@ -13,8 +13,9 @@ class PlutoLoRaControl:
             self.sdr = adi.Pluto(uri)
             self.sdr.sample_rate = 1000000
             self.sdr.tx_rf_bandwidth = 2000000
-            self.sdr.tx_lo = 915300000  # Match your Pi's 915.3MHz
-            self.sdr.tx_hardwaregain_chan0 = -10  # -10 is strong, 0 is MAX
+            self.sdr.tx_lo = 915305000  # Match your Pi's 915.3MHz
+            self.sdr.tx_hardwaregain_chan0 = -1  # -10 is strong, 0 is MAX
+
         except Exception as e:
             print(f"Hardware Error: Could not find Pluto at {uri}\n{e}")
             exit()
@@ -57,15 +58,20 @@ class PlutoLoRaControl:
         self.log.pack(pady=20, padx=20)
 
         self.write_log("System Ready. Connected to Pluto+.")
+        threading.Thread(target=self.rssi_updater, daemon=True).start()
         self.root.mainloop()
 
     def get_rssi(self):
-        """Reads hardware RSSI from the AD9361 chip"""
         try:
-            # RSSI is found in the voltage0 channel attributes
-            return self.sdr._ctrl.find_channel('voltage0').attrs['rssi'].value
+            # Some versions of the driver store it in the 'ad9361-phy' device
+            # directly rather than the voltage channel
+            return self.sdr._ctrl.debug_attrs['rssi'].value
         except:
-            return "0.00"
+            try:
+                # Fallback to the voltage channel method
+                return self.sdr._ctrl.find_channel('voltage0').attrs['rssi'].value
+            except:
+                return "-110.0"  # Default "silence" value
 
     def rssi_updater(self):
         while True:
@@ -82,17 +88,23 @@ class PlutoLoRaControl:
         preamble_chirp = np.exp(1j * np.pi * (bw / (2 ** sf / bw)) * (t ** 2))
         packet = [preamble_chirp] * 8
 
-        # Sync words (2.25 down-chirps - LoRa standard)
-        down_chirp = np.exp(-1j * np.pi * (bw / (2 ** sf / bw)) * (t ** 2))
-        packet.append(down_chirp)
-        packet.append(down_chirp)
+        # 2. SYNC WORD: This is where you "set" the word.
+        # For a Private Network (0x12), we use 2.25 Down-chirps.
+        down = np.exp(-1j * np.pi * (bw / (2 ** sf / bw)) * (t ** 2))
+        packet.append(down)
+        packet.append(down)
+        packet.append(down[:int(N / 4)])  # The .25 trailing chirp
 
-        # Message Encoding (Cyclic Shift Keying)
-        for char in message:
-            val = ord(char) % (2 ** sf)  # Map ASCII to symbol index
+        # 3. MESSAGE: Standard LoRa shifted chirps
+        # Add the RadioHead 4-byte header [To, From, ID, Flags]
+        header = [chr(255), chr(255), chr(0), chr(0)]
+        full_msg = "".join(header) + message
+
+        for char in full_msg:
+            val = ord(char) % (2 ** sf)
             shift_t = (np.arange(N) + (val * (N / 2 ** sf))) % N / fs
-            shifted_chirp = np.exp(1j * np.pi * (bw / (2 ** sf / bw)) * (shift_t ** 2))
-            packet.append(shifted_chirp)
+            shifted = np.exp(1j * np.pi * (bw / (2 ** sf / bw)) * (shift_t ** 2))
+            packet.append(shifted)
 
         return (np.concatenate(packet) * 2047).astype(np.complex64)
 
