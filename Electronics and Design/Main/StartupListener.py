@@ -2,8 +2,9 @@ import board
 import busio
 from digitalio import DigitalInOut
 import adafruit_rfm9x
-import os, subprocess
 import sys
+import time
+from digitalio import Direction
 
 from LanderMain import LanderMain
 
@@ -13,6 +14,13 @@ cs = DigitalInOut(board.CE0)
 reset = DigitalInOut(board.D25)
 rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, 915)
 
+
+reset.direction = Direction.OUTPUT
+reset.value = False
+time.sleep(0.01)
+reset.value = True
+time.sleep(0.01)
+
 rfm9x.invert_iq = True
 rfm9x.spreading_factor = 7
 rfm9x.signal_bandwidth = 125000
@@ -21,7 +29,7 @@ rfm9x.low_data_rate_optimize = False # Match this to your GRC 'Off' setting
 rfm9x.sync_word = 0x12 # Match your GRC '18' setting
 rfm9x.enable_crc = False
 
-lastRssi = 10000000.0
+lastRssi = 10000000.0 #starting value out of normal range
 
 print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
 started = False
@@ -53,23 +61,7 @@ while not started:
         except Exception as e:
             print(e)
             pass
-'''
-# Release the pins so the next script can use them
-rfm9x.reset()  # Optional: Put radio in sleep/reset
-spi.deinit()  # Release the SPI bus (SCK, MOSI, MISO)
-cs.deinit()  # Release the Chip Select pin (CE0)
-reset.deinit()
 
-spi = None
-cs = None
-reset = None
-rfm9x = None
-
-# Execute Main and exit Listener
-os.system("'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 ")
-#result = subprocess.run(["'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 &"], capture_output=True, text=True)
-#print(result.stdout)
-'''
 print("Launching Main Program.")
 lander = LanderMain(spi, cs, reset, rfm9x)
 lander.runMainLoop()
