@@ -21,7 +21,7 @@ time.sleep(0.01)
 reset.value = True
 time.sleep(0.01)
 
-rfm9x.invert_iq = True
+rfm9x.invert_iq = False
 rfm9x.spreading_factor = 7
 rfm9x.signal_bandwidth = 125000
 rfm9x.coding_rate = 5  # This represents 4/5 in many LoRa libraries
@@ -35,18 +35,13 @@ print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
 started = False
 while not started:
     #print("Heartbeat...")
+    rssi = rfm9x.last_rssi
+    if abs(lastRssi - rssi) > 1:
+        print(f"Noise Floor: {rssi} dBm")
+        lastRssi = rssi
     packet = rfm9x.receive()
-    if packet is None:
-        # Print the background noise level every few seconds
-        rssi = rfm9x.last_rssi
-        if abs(lastRssi - rssi) > 1:
-            print(f"Noise Floor: {rssi} dBm")
-            lastRssi = rssi
-    else:
-        rssi = rfm9x.last_rssi
-        if abs(lastRssi - rssi) > 1:
-            print(f"Noise Floor: {rssi} dBm")
-            lastRssi = rssi
+    if packet is not None:
+
         print("Packet Received!")
         # Convert bytes to string and strip whitespace/nulls
         print(f"Packet raw: , {packet}")
