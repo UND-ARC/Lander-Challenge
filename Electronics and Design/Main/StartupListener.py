@@ -46,11 +46,11 @@ print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
 started = False
 while not started:
     #print("Heartbeat...")
+    packet = rfm9x.receive(timeout=1.0)
     rssi = rfm9x.last_rssi
     if abs(lastRssi - rssi) > 1:
         print(f"Noise Floor: {rssi} dBm")
         lastRssi = rssi
-    packet = rfm9x.receive(timeout=1.0)
     if packet is not None:
 
         print("Packet Received!")
