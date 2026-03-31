@@ -39,7 +39,7 @@ while not started:
     if abs(lastRssi - rssi) > 1:
         print(f"Noise Floor: {rssi} dBm")
         lastRssi = rssi
-    packet = rfm9x.receive()
+    packet = rfm9x.receive(timeout=1.0)
     if packet is not None:
 
         print("Packet Received!")
