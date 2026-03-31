@@ -40,6 +40,8 @@ rfm9x.enable_crc = False
 
 lastRssi = 10000000.0 #starting value out of normal range
 
+print(f"Chip Version: {rfm9x._read_u8(0x42)}")
+
 print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
 started = False
 while not started:
