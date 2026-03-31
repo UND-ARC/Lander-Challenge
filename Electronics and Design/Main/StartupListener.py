@@ -57,6 +57,10 @@ rfm9x.enable_crc = False
 
 lastRssi = 10000000.0 #starting value out of normal range
 
+rfm9x.spreading_factor = 9 # Change from 7 to 9 to force a re-calculation
+time.sleep(0.1)
+rfm9x.spreading_factor = 7
+
 print(f"Chip Version: {rfm9x._read_u8(0x42)}")
 
 print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
