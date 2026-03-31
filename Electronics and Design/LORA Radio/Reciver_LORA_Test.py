@@ -73,7 +73,7 @@ class Reciver_LORA_Test(gr.top_block, Qt.QWidget):
         self.btn_trigger_start = btn_trigger_start = 0
         self.btn_trigger_ESTOP = btn_trigger_ESTOP = 0
         self.Spreading_Factor = Spreading_Factor = 7
-        self.IP = IP = 'usb:1.12.5'
+        self.IP = IP = 'usb:1.14.5'
         self.Frequency = Frequency = 915300000
 
         ##################################################

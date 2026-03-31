@@ -19,6 +19,7 @@ rfm9x.signal_bandwidth = 125000
 rfm9x.coding_rate = 5  # This represents 4/5 in many LoRa libraries
 rfm9x.low_data_rate_optimize = False # Match this to your GRC 'Off' setting
 rfm9x.sync_word = 0x12 # Match your GRC '18' setting
+rfm9x.enable_crc = False
 
 lastRssi = 0
 
