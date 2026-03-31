@@ -21,7 +21,7 @@ rfm9x.low_data_rate_optimize = False # Match this to your GRC 'Off' setting
 rfm9x.sync_word = 0x12 # Match your GRC '18' setting
 rfm9x.enable_crc = False
 
-lastRssi = 0
+lastRssi = 10000000.0
 
 print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
 started = False
@@ -35,6 +35,10 @@ while not started:
             print(f"Noise Floor: {rssi} dBm")
             lastRssi = rssi
     else:
+        rssi = rfm9x.last_rssi
+        if abs(lastRssi - rssi) > 1:
+            print(f"Noise Floor: {rssi} dBm")
+            lastRssi = rssi
         print("Packet Received!")
         # Convert bytes to string and strip whitespace/nulls
         print(f"Packet raw: , {packet}")
