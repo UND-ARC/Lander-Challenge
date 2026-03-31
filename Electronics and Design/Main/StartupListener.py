@@ -23,6 +23,12 @@ cs = DigitalInOut(board.CE0)
 reset = DigitalInOut(board.D25)
 rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, 915)
 
+# Force the radio to wake up and calibrate its RSSI circuit
+rfm9x.idle()
+time.sleep(0.1)
+rfm9x.listen() # This is the command that actually turns on the 'ears'
+print(f"Radio Mode: {rfm9x.operation_mode}") # Should NOT be 0 (Sleep)
+
 
 reset.direction = Direction.OUTPUT
 reset.value = False
@@ -51,6 +57,8 @@ while not started:
     snr = rfm9x.last_snr
     #if abs(lastRssi - rssi) > 1:
     print(f"Noise Floor: {rssi} dBm | SNR: {snr}")
+    raw_rssi = rfm9x._read_u8(0x1B)
+    print(f"Raw Reg 0x1B: {raw_rssi}")
     lastRssi = rssi
 
     if packet is not None:
