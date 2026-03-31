@@ -13,7 +13,7 @@ class PlutoLoRaControl:
             self.sdr = adi.Pluto(uri)
             self.sdr.sample_rate = 1000000
             self.sdr.tx_rf_bandwidth = 2000000
-            self.sdr.tx_lo = 915305000  # Match your Pi's 915.3MHz
+            self.sdr.tx_lo = 915000000  # Match your Pi's 915.3MHz
             self.sdr.tx_hardwaregain_chan0 = -10  # -10 is strong, 0 is MAX
 
         except Exception as e:

@@ -10,6 +10,15 @@ from LanderMain import LanderMain
 
 # Standard Startup Hardware Init
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
+
+# Try to lock the bus manually to see if it's alive
+if spi.try_lock():
+    print("SPI Bus is working and locked!")
+    spi.configure(baudrate=5000000) # 5MHz
+    spi.unlock()
+else:
+    print("SPI Bus is BUSY or LOCKED by another process!")
+
 cs = DigitalInOut(board.CE0)
 reset = DigitalInOut(board.D25)
 rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, 915)
