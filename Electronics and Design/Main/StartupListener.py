@@ -27,9 +27,16 @@ rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, 915)
 rfm9x.idle()
 time.sleep(0.1)
 rfm9x.listen() # This is the command that actually turns on the 'ears'
+
 # Force LNA to Max Gain (G1) and High Frequency Mode
 # RegLna (0x0C) -> 0x23 (Max gain, default boost)
 rfm9x._write_u8(0x0C, 0x23)
+
+# RegOpMode (0x01) -> Force Bit 3 (LowFrequencyModeOn) to 0
+current_mode = rfm9x._read_u8(0x01)
+rfm9x._write_u8(0x01, current_mode & 0xF7)
+print(f"HF Mode Forced. New OpMode: {rfm9x._read_u8(0x01)}")
+
 print(f"LNA Forced to: {rfm9x._read_u8(0x0C)}")
 print(f"Radio Mode: {rfm9x.operation_mode}") # Should NOT be 0 (Sleep)
 
