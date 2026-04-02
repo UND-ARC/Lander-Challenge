@@ -49,7 +49,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: '"usb:1.16.5"'
+    value: '''usb:1.14.5'''
   states:
     bus_sink: false
     bus_source: false
@@ -113,7 +113,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: '131072'
+    value: '32768'
   states:
     bus_sink: false
     bus_source: false
@@ -157,7 +157,7 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     msg: pmt.intern("                     STARTMAIN")
-    period: '500'
+    period: '100'
   states:
     bus_sink: false
     bus_source: false
@@ -198,7 +198,7 @@ blocks:
     bus_structure: null
     coordinate: [1096, 296.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: blocks_mute_xx_0_0
   id: blocks_mute_xx
   parameters:
@@ -221,11 +221,11 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    attenuation1: '20'
+    attenuation1: '15'
     bandwidth: '20000000'
     buffer_size: bufferSize
     comment: ''
-    cyclic: 'False'
+    cyclic: 'True'
     filter: ''
     filter_source: '''Auto'''
     fpass: '0'
@@ -256,9 +256,9 @@ blocks:
     fpass: '0'
     frequency: Frequency
     fstop: '0'
-    gain1: '''slow_attack'''
+    gain1: '''manual'''
     len_tag_key: packet_len
-    manual_gain1: '15'
+    manual_gain1: '1'
     maxoutbuf: '0'
     minoutbuf: '0'
     quadrature: 'True'
@@ -445,7 +445,6 @@ blocks:
     state: enabled
 
 connections:
-- [blocks_message_strobe_0, strobe, blocks_message_debug_0, print]
 - [blocks_message_strobe_0, strobe, lora_tx_0, in]
 - [blocks_message_strobe_0_0, strobe, lora_tx_0_0, in]
 - [blocks_mute_xx_0, '0', iio_pluto_sink_0, '0']
@@ -453,6 +452,7 @@ connections:
 - [iio_pluto_source_0, '0', qtgui_freq_sink_x_0, '0']
 - [lora_rx_0, out, blocks_message_debug_0, print]
 - [lora_tx_0, '0', blocks_mute_xx_0, '0']
+- [lora_tx_0, '0', iio_pluto_sink_0, '0']
 - [lora_tx_0_0, '0', blocks_mute_xx_0_0, '0']
 
 metadata:

@@ -2,37 +2,82 @@ import board
 import busio
 from digitalio import DigitalInOut
 import adafruit_rfm9x
-import os, subprocess
 import sys
+import time
+from digitalio import Direction
 
 from LanderMain import LanderMain
 
 # Standard Startup Hardware Init
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
+
+# Try to lock the bus manually to see if it's alive
+if spi.try_lock():
+    print("SPI Bus is working and locked!")
+    spi.configure(baudrate=5000000) # 5MHz
+    spi.unlock()
+else:
+    print("SPI Bus is BUSY or LOCKED by another process!")
+
 cs = DigitalInOut(board.CE0)
 reset = DigitalInOut(board.D25)
 rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, 915)
 
-rfm9x.invert_iq = True
+# Force the radio to wake up and calibrate its RSSI circuit
+rfm9x.idle()
+time.sleep(0.1)
+rfm9x.listen() # This is the command that actually turns on the 'ears'
+
+# Force LNA to Max Gain (G1) and High Frequency Mode
+# RegLna (0x0C) -> 0x23 (Max gain, default boost)
+rfm9x._write_u8(0x0C, 0x23)
+
+# RegOpMode (0x01) -> Force Bit 3 (LowFrequencyModeOn) to 0
+current_mode = rfm9x._read_u8(0x01)
+rfm9x._write_u8(0x01, current_mode & 0xF7)
+print(f"HF Mode Forced. New OpMode: {rfm9x._read_u8(0x01)}")
+
+print(f"LNA Forced to: {rfm9x._read_u8(0x0C)}")
+print(f"Radio Mode: {rfm9x.operation_mode}") # Should NOT be 0 (Sleep)
+
+
+reset.direction = Direction.OUTPUT
+reset.value = False
+time.sleep(0.01)
+reset.value = True
+time.sleep(0.01)
+
+rfm9x.invert_iq = False
 rfm9x.spreading_factor = 7
 rfm9x.signal_bandwidth = 125000
 rfm9x.coding_rate = 5  # This represents 4/5 in many LoRa libraries
 rfm9x.low_data_rate_optimize = False # Match this to your GRC 'Off' setting
 rfm9x.sync_word = 0x12 # Match your GRC '18' setting
+rfm9x.enable_crc = False
 
-lastRssi = 0
+lastRssi = 10000000.0 #starting value out of normal range
+
+rfm9x.spreading_factor = 9 # Change from 7 to 9 to force a re-calculation
+time.sleep(0.1)
+rfm9x.spreading_factor = 7
+
+print(f"Chip Version: {rfm9x._read_u8(0x42)}")
 
 print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
 started = False
 while not started:
-    packet = rfm9x.receive()
-    if packet is None:
-        # Print the background noise level every few seconds
-        rssi = rfm9x.last_rssi
-        if abs(lastRssi - rssi) > 5:
-            print(f"Noise Floor: {rssi} dBm")
-            lastRssi = rssi
-    else:
+    #print("Heartbeat...")
+    packet = rfm9x.receive(timeout=0.5)
+    rssi = rfm9x.last_rssi
+    snr = rfm9x.last_snr
+    #if abs(lastRssi - rssi) > 1:
+    print(f"Noise Floor: {rssi} dBm | SNR: {snr}")
+    raw_rssi = rfm9x._read_u8(0x1B)
+    print(f"Raw Reg 0x1B: {raw_rssi}")
+    lastRssi = rssi
+
+    if packet is not None:
+
         print("Packet Received!")
         # Convert bytes to string and strip whitespace/nulls
         print(f"Packet raw: , {packet}")
@@ -47,23 +92,7 @@ while not started:
         except Exception as e:
             print(e)
             pass
-'''
-# Release the pins so the next script can use them
-rfm9x.reset()  # Optional: Put radio in sleep/reset
-spi.deinit()  # Release the SPI bus (SCK, MOSI, MISO)
-cs.deinit()  # Release the Chip Select pin (CE0)
-reset.deinit()
 
-spi = None
-cs = None
-reset = None
-rfm9x = None
-
-# Execute Main and exit Listener
-os.system("'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 ")
-#result = subprocess.run(["'/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3' -u '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py' > '/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/mission.log' 2>&1 &"], capture_output=True, text=True)
-#print(result.stdout)
-'''
 print("Launching Main Program.")
 lander = LanderMain(spi, cs, reset, rfm9x)
 lander.runMainLoop()
