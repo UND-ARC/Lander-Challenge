@@ -25,7 +25,6 @@ MAX_STREAM_HZ = 500
 DEFAULT_THRESHOLD_V = 12.0
 DEFAULT_SHUTDOWN_PIN = "FIO7"
 
-# T7 reads these inputs
 AIN_NAMES = [
     *[f"AIN{i}" for i in range(0, 8)],      # 8 cryo RTDs
     *[f"AIN{i}" for i in range(8, 16)],     # 8 cryo pressure
@@ -46,6 +45,7 @@ CHANNEL_GROUPS = {
     "tc_3": AIN_NAMES[51:56],
 }
 
+#T7 controls inputs
 CHANNEL_THRESHOLDS = {
     # 8 cryo RTDs (0–10V)
     "AIN0": 9.5, "AIN1": 9.5, "AIN2": 9.5, "AIN3": 9.5,
@@ -73,12 +73,16 @@ CHANNEL_THRESHOLDS = {
     "AIN55": 9.5,
 }
 
-# T4 controls these outputs
+# T4 controls outputs
 DIGITAL_OUTPUTS = [
-    ("FIO4", "D0 (FIO4)"),
-    ("FIO5", "D1 (FIO5)"),
-    ("FIO6", "D2 (FIO6)"),
-    ("FIO7", "D3 (FIO7)"),
+    ("FIO4", "Relay 0 (NO)"),
+    ("FIO5", "Relay 1 (NO)"),
+    ("FIO6", "Relay 2 (NO)"),
+    ("FIO7", "Relay 3 (NO)"),
+    ("EIO0", "Relay 4 (NC)"),
+    ("EIO1", "Relay 5 (NC)"),
+    ("EIO2", "Relay 6 (NC)"),
+    ("EIO3", "Relay 7 (NC)"),
 ]
 
 CONFIG_D_MAP = {
@@ -86,6 +90,21 @@ CONFIG_D_MAP = {
     "D1": "FIO5",
     "D2": "FIO6",
     "D3": "FIO7",
+    "D4": "EIO0",
+    "D5": "EIO1",
+    "D6": "EIO2",
+    "D7": "EIO3",
+}
+
+RELAY_LOGIC = {
+    "D0": "NO",
+    "D1": "NO",
+    "D2": "NO",
+    "D3": "NO",
+    "D4": "NC",
+    "D5": "NC",
+    "D6": "NC",
+    "D7": "NC",
 }
 
 CONFIG_A_MAP = {
@@ -114,7 +133,7 @@ class EventItem:
 class RawBlock:
     start_index: int
     n_scans: int
-    data: np.ndarray  # shape (n_scans, n_channels), float32
+    data: np.ndarray
 
 
 @dataclass
@@ -377,9 +396,13 @@ class LabJackApp:
             except Exception:
                 pass
 
-            # Set all T4 digital outputs low
-            for dio_name, _label in DIGITAL_OUTPUTS:
-                self.set_dio(dio_name, 0, do_log=False)
+            for dkey, fio in CONFIG_D_MAP.items():
+                if RELAY_LOGIC.get(dkey) == "NC":
+                    value = 1
+                else:
+                    value = 0
+
+                self.set_dio(fio, value, do_log=False)
 
             self.stream_thread = threading.Thread(target=self._stream_loop, daemon=True)
             self.stream_thread.start()
@@ -758,9 +781,15 @@ class LabJackApp:
 
         for dkey, fio in CONFIG_D_MAP.items():
             if dkey in step.digital:
-                value = 1 if bool(step.digital[dkey]) else 0
+                raw = bool(step.digital[dkey])
+
+                if RELAY_LOGIC.get(dkey) == "NC":
+                    value = 0 if raw else 1
+                else:
+                    value = 1 if raw else 0
+
                 self.set_dio(fio, value, do_log=False)
-                parts.append(f"{dkey}={value}")
+                parts.append(f"{dkey}={int(raw)}")
 
         for akey, dac in CONFIG_A_MAP.items():
             if akey in step.analog:
@@ -920,7 +949,16 @@ class LabJackApp:
         if self._updating_dio_widgets:
             return
         checked = bool(dpg.get_value(f"dio_checkbox_{dio_name}"))
-        self.set_dio(dio_name, 1 if checked else 0, do_log=True)
+        dkey = None
+        for k, v in CONFIG_D_MAP.items():
+            if v == dio_name:
+                dkey = k
+                break
+        if dkey and RELAY_LOGIC.get(dkey) == "NC":
+            value = 0 if checked else 1
+        else:
+            value = 1 if checked else 0
+        self.set_dio(dio_name, value, do_log=True)
 
     # ----------------------------
     # GUI update
@@ -994,12 +1032,28 @@ class LabJackApp:
 
         self._updating_dio_widgets = True
         try:
-            for dio_name, _label in DIGITAL_OUTPUTS:
+            for dio_name, label in DIGITAL_OUTPUTS:
                 tag = f"dio_checkbox_{dio_name}"
                 current = dpg.get_value(tag)
                 target = bool(self.dio_states[dio_name])
+
+                dkey = None
+                for k, v in CONFIG_D_MAP.items():
+                    if v == dio_name:
+                        dkey = k
+                        break
+
+                if dkey and RELAY_LOGIC.get(dkey) == "NC":
+                    closed = not target
+                else:
+                    closed = target
+
+                state_str = "CLOSED" if closed else "OPEN"
+
                 if current != target:
                     dpg.set_value(tag, target)
+
+                dpg.configure_item(tag, label=f"{label} [{state_str}]")
         finally:
             self._updating_dio_widgets = False
 

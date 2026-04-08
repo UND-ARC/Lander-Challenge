@@ -9,7 +9,10 @@ from PyQt6.QtWidgets import (
     QWidget, QCheckBox, QStackedWidget
 )
 
-DIGITAL_CHANNELS = [f"D{i}" for i in range(8)]
+RELAY_CHANNELS = [
+    {"key": f"D{i}", "label": f"Relay {i} (NO)" if i < 4 else f"Relay {i} (NC)"}
+    for i in range(8)
+]
 ANALOG_CHANNELS = [f"A{i}" for i in range(2)]
 
 # -------------------------
@@ -47,9 +50,9 @@ class StepDialog(QDialog):
         dig_box = QGroupBox("Digital")
         dig_layout = QHBoxLayout()
 
-        for ch in DIGITAL_CHANNELS:
-            cb = QCheckBox(ch)
-            self.digs[ch] = cb
+        for ch in RELAY_CHANNELS:
+            cb = QCheckBox(ch["label"])
+            self.digs[ch["key"]] = cb
             dig_layout.addWidget(cb)
 
         dig_box.setLayout(dig_layout)
@@ -91,7 +94,7 @@ class StepDialog(QDialog):
     def get(self):
         return {
             "t": self.time.value(),
-            "digital": {k:self.digs[k].isChecked() for k in DIGITAL_CHANNELS},
+            "digital": {ch["key"]: self.digs[ch["key"]].isChecked() for ch in RELAY_CHANNELS},
             "analog": {k:self.anas[k].value() for k in ANALOG_CHANNELS}
         }
 
@@ -106,9 +109,9 @@ class Editor(QWidget):
         self.mark_dirty = mark_dirty
 
         self.table = QTableWidget()
-        self.table.setColumnCount(1+len(DIGITAL_CHANNELS)+len(ANALOG_CHANNELS))
+        self.table.setColumnCount(1 + len(RELAY_CHANNELS) + len(ANALOG_CHANNELS))
         self.table.setHorizontalHeaderLabels(
-            ["Time"] + DIGITAL_CHANNELS + ANALOG_CHANNELS
+            ["Time"] + [ch["label"] for ch in RELAY_CHANNELS] + ANALOG_CHANNELS
         )
 
         add = QPushButton("Add")
@@ -138,8 +141,9 @@ class Editor(QWidget):
         for r,s in enumerate(steps):
             self.table.setItem(r,0,QTableWidgetItem(str(s["t"])))
             c=1
-            for d in DIGITAL_CHANNELS:
-                self.table.setItem(r,c,QTableWidgetItem(str(int(s["digital"][d]))))
+            for ch in RELAY_CHANNELS:
+                key = ch["key"]
+                self.table.setItem(r, c, QTableWidgetItem(str(int(s["digital"][key]))))
                 c+=1
             for a in ANALOG_CHANNELS:
                 self.table.setItem(r,c,QTableWidgetItem(str(s["analog"][a])))
