@@ -14,6 +14,45 @@ RELAY_CHANNELS = [
     for i in range(8)
 ]
 ANALOG_CHANNELS = [f"A{i}" for i in range(2)]
+AIN_CHANNELS = [f"AIN{i}" for i in range(56)]
+
+
+# -------------------------
+# Sensor definitions
+# -------------------------
+
+SENSOR_META = {
+    # -------- CRYO RTDs (0–10V) --------
+    "AIN0":  {"unit": "°C",  "v_min": 0.0, "v_max": 10.0, "e_min": -200.0, "e_max": 200.0},  # 0–10V → -200 to 200°C
+    "AIN1":  {"unit": "°C",  "v_min": 0.0, "v_max": 10.0, "e_min": -200.0, "e_max": 200.0},
+
+    # -------- CRYO PRESSURE (0–5V) --------
+    "AIN8":  {"unit": "psi", "v_min": 0.0, "v_max": 5.0,  "e_min": 0.0, "e_max": 500.0},   # 0–5V → 0–500 psi
+
+    # -------- EXAMPLE (0–10V → 0–1000 psi) --------
+    "AIN19": {"unit": "psi", "v_min": 0.0, "v_max": 10.0, "e_min": 0.0, "e_max": 1000.0},  # 0–10V → 0–1000 psi
+}
+
+def eng_to_volts(ch, value):
+    meta = SENSOR_META.get(ch)
+    if not meta:
+        return value  # fallback (already volts)
+
+    v_min, v_max = meta["v_min"], meta["v_max"]
+    e_min, e_max = meta["e_min"], meta["e_max"]
+
+    return v_min + (value - e_min) * (v_max - v_min) / (e_max - e_min)
+
+
+def volts_to_eng(ch, value):
+    meta = SENSOR_META.get(ch)
+    if not meta:
+        return value
+
+    v_min, v_max = meta["v_min"], meta["v_max"]
+    e_min, e_max = meta["e_min"], meta["e_max"]
+
+    return e_min + (value - v_min) * (e_max - e_min) / (v_max - v_min)
 
 # -------------------------
 # Data helpers
@@ -21,7 +60,8 @@ ANALOG_CHANNELS = [f"A{i}" for i in range(2)]
 
 def default_preset():
     return {
-        "version": 1,
+        "version": 2,
+        "thresholds": {},
         "steps": []
     }
 
@@ -109,14 +149,17 @@ class Editor(QWidget):
         self.mark_dirty = mark_dirty
 
         self.table = QTableWidget()
+        self.threshold_table = QTableWidget()
+        self.threshold_table.setColumnCount(3)
+        self.threshold_table.setHorizontalHeaderLabels(["Channel", "Threshold", "Units/Range"])
         self.table.setColumnCount(1 + len(RELAY_CHANNELS) + len(ANALOG_CHANNELS))
         self.table.setHorizontalHeaderLabels(
             ["Time"] + [ch["label"] for ch in RELAY_CHANNELS] + ANALOG_CHANNELS
         )
 
-        add = QPushButton("Add")
-        edit = QPushButton("Edit")
-        delete = QPushButton("Delete")
+        add = QPushButton("Add Event Row")
+        edit = QPushButton("Edit Event Row")
+        delete = QPushButton("Delete Event Row")
 
         add.clicked.connect(self.add)
         edit.clicked.connect(self.edit)
@@ -128,6 +171,10 @@ class Editor(QWidget):
         btns.addWidget(delete)
 
         layout = QVBoxLayout()
+
+        layout.addWidget(QLabel("Sensor Thresholds"))
+        layout.addWidget(self.threshold_table)
+
         layout.addWidget(self.table)
         layout.addLayout(btns)
         self.setLayout(layout)
@@ -135,6 +182,36 @@ class Editor(QWidget):
         self.refresh()
 
     def refresh(self):
+        thresholds = self.data.get("thresholds", {})
+        self.threshold_table.setRowCount(len(AIN_CHANNELS))
+
+        for r, ch in enumerate(AIN_CHANNELS):
+            self.threshold_table.setItem(r, 0, QTableWidgetItem(ch))
+
+            val = thresholds.get(ch, "")
+            if val != "":
+                eng_val = volts_to_eng(ch, val)
+                self.threshold_table.setItem(r, 1, QTableWidgetItem(f"{eng_val:.2f}"))
+            else:
+                self.threshold_table.setItem(r, 1, QTableWidgetItem(""))
+
+            meta = SENSOR_META.get(ch)
+
+            if meta:
+                unit = meta["unit"]
+                e_min = meta["e_min"]
+                e_max = meta["e_max"]
+                v_min = meta["v_min"]
+                v_max = meta["v_max"]
+
+                text = f"{unit} ({e_min:g} - {e_max:g}) | {v_min:g} - {v_max:g}V"
+            else:
+                text = "volts (raw)"
+
+            item = QTableWidgetItem(text)
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)  # 🔒 read-only
+            self.threshold_table.setItem(r, 2, item)
+
         steps = self.data["steps"]
         self.table.setRowCount(len(steps))
 
@@ -148,6 +225,26 @@ class Editor(QWidget):
             for a in ANALOG_CHANNELS:
                 self.table.setItem(r,c,QTableWidgetItem(str(s["analog"][a])))
                 c+=1
+
+    def collect_thresholds(self):
+        thresholds = {}
+
+        for r in range(self.threshold_table.rowCount()):
+            ch_item = self.threshold_table.item(r, 0)
+            val_item = self.threshold_table.item(r, 1)
+
+            if ch_item and val_item:
+                ch = ch_item.text()
+                raw = val_item.text()
+
+                try:
+                    eng_val = float(raw)
+                    volt_val = eng_to_volts(ch, eng_val)
+                    thresholds[ch] = volt_val
+                except:
+                    pass
+
+        self.data["thresholds"] = thresholds
 
     def row(self):
         sel=self.table.selectionModel().selectedRows()
@@ -236,7 +333,8 @@ class Main(QMainWindow):
 
     def save(self):
         if self.file:
-            save_preset(self.file,self.data)
+            self.editor.collect_thresholds()
+            save_preset(self.file, self.data)
             self.dirty=False
 
 def main():

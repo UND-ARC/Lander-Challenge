@@ -46,7 +46,7 @@ CHANNEL_GROUPS = {
 }
 
 #T7 controls inputs
-CHANNEL_THRESHOLDS = {
+DEFAULT_CHANNEL_THRESHOLDS = {
     # 8 cryo RTDs (0–10V)
     "AIN0": 9.5, "AIN1": 9.5, "AIN2": 9.5, "AIN3": 9.5,
     "AIN4": 9.5, "AIN5": 9.5, "AIN6": 9.5, "AIN7": 9.5,
@@ -290,6 +290,7 @@ class LabJackApp:
         self._updating_dio_widgets = False
 
         self.sensor_fault = {ch: False for ch in AIN_NAMES}
+        self.channel_thresholds = dict(DEFAULT_CHANNEL_THRESHOLDS)
 
         self._build_gui()
         self.start_run()
@@ -376,6 +377,7 @@ class LabJackApp:
         with self.run_lock:
             self.stop_event.clear()
             self.display_ring.reset(WINDOW_SECONDS, GUI_HZ)
+            self.channel_thresholds = dict(DEFAULT_CHANNEL_THRESHOLDS)
             self.latest_display_values = {ch: float("nan") for ch in AIN_NAMES}
             self._clear_queues()
 
@@ -537,7 +539,7 @@ class LabJackApp:
                     else:
                         self.sensor_fault[ch] = False
 
-                    th = CHANNEL_THRESHOLDS.get(ch, None)
+                    th = self.channel_thresholds.get(ch, None)
                     if th is not None and max_val > th:
                         self.log_event(f"THRESHOLD {ch} {max_val:.3f} > {th:.3f}")
 
@@ -715,6 +717,18 @@ class LabJackApp:
             else:
                 self._set_status("Invalid config format.")
                 return
+
+            thresholds = obj.get("thresholds", {})
+
+            self.channel_thresholds = dict(DEFAULT_CHANNEL_THRESHOLDS)
+
+            if isinstance(thresholds, dict):
+                for ch in AIN_NAMES:
+                    if ch in thresholds:
+                        try:
+                            self.channel_thresholds[ch] = float(thresholds[ch])
+                        except Exception:
+                            pass
 
             loaded_steps: List[ConfigStep] = []
             for s in steps_raw:
