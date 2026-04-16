@@ -17,9 +17,10 @@ from labjack import ljm
 # ============================================================
 # SETTINGS
 # ============================================================
-GUI_HZ = 10.0
+GUI_HZ = 20.0
 WINDOW_SECONDS = 10.0
-DEFAULT_STREAM_HZ = 300
+DISPLAY_POINTS_PER_SEC = 20.0
+DEFAULT_STREAM_HZ = 200
 MIN_STREAM_HZ = 5
 MAX_STREAM_HZ = 500
 DEFAULT_THRESHOLD_V = 12.0
@@ -45,55 +46,53 @@ CHANNEL_GROUPS = {
     "tc_3": AIN_NAMES[51:56],
 }
 
-#T7 controls inputs
 DEFAULT_CHANNEL_THRESHOLDS = {
     # 8 cryo RTDs (0–10V)
-    "AIN0": 9.5, "AIN1": 9.5, "AIN2": 9.5, "AIN3": 9.5,
-    "AIN4": 9.5, "AIN5": 9.5, "AIN6": 9.5, "AIN7": 9.5,
+    "AIN0": 9.9, "AIN1": 9.9, "AIN2": 9.9, "AIN3": 9.9,
+    "AIN4": 9.9, "AIN5": 9.9, "AIN6": 9.9, "AIN7": 9.9,
 
     # 8 cryo pressure (0–5V)
-    "AIN8": 4.5, "AIN9": 4.5, "AIN10": 4.5, "AIN11": 4.5,
-    "AIN12": 4.5, "AIN13": 4.5, "AIN14": 4.5, "AIN15": 4.5,
+    "AIN8": 4.9, "AIN9": 4.9, "AIN10": 4.9, "AIN11": 4.9,
+    "AIN12": 4.9, "AIN13": 4.9, "AIN14": 4.9, "AIN15": 4.9,
 
     # 3 load cells (0–10V)
     "AIN16": 9.5, "AIN17": 9.5, "AIN18": 9.5,
 
     # 20 non-cryo pressure (0–10V)
-    "AIN19": 9.5, "AIN20": 9.5, "AIN21": 9.5, "AIN22": 9.5,
-    "AIN23": 9.5, "AIN24": 9.5, "AIN25": 9.5, "AIN26": 9.5,
-    "AIN27": 9.5, "AIN28": 9.5, "AIN29": 9.5, "AIN30": 9.5,
-    "AIN31": 9.5, "AIN32": 9.5, "AIN33": 9.5, "AIN34": 9.5,
-    "AIN35": 9.5, "AIN36": 9.5, "AIN37": 9.5, "AIN38": 9.5,
+    "AIN19": 9.9, "AIN20": 9.9, "AIN21": 9.9, "AIN22": 9.9,
+    "AIN23": 9.9, "AIN24": 9.9, "AIN25": 9.9, "AIN26": 9.9,
+    "AIN27": 9.9, "AIN28": 9.9, "AIN29": 9.9, "AIN30": 9.9,
+    "AIN31": 9.9, "AIN32": 9.9, "AIN33": 9.9, "AIN34": 9.9,
+    "AIN35": 9.9, "AIN36": 9.9, "AIN37": 9.9, "AIN38": 9.9,
 
     # 17 thermocouples (0–10V)
-    "AIN39": 9.5, "AIN40": 9.5, "AIN41": 9.5, "AIN42": 9.5,
-    "AIN43": 9.5, "AIN44": 9.5, "AIN45": 9.5, "AIN46": 9.5,
-    "AIN47": 9.5, "AIN48": 9.5, "AIN49": 9.5, "AIN50": 9.5,
-    "AIN51": 9.5, "AIN52": 9.5, "AIN53": 9.5, "AIN54": 9.5,
-    "AIN55": 9.5,
+    "AIN39": 9.9, "AIN40": 9.9, "AIN41": 9.9, "AIN42": 9.9,
+    "AIN43": 9.9, "AIN44": 9.9, "AIN45": 9.9, "AIN46": 9.9,
+    "AIN47": 9.9, "AIN48": 9.9, "AIN49": 9.9, "AIN50": 9.9,
+    "AIN51": 9.9, "AIN52": 9.9, "AIN53": 9.9, "AIN54": 9.9,
+    "AIN55": 9.9,
 }
 
-# T4 controls outputs
 DIGITAL_OUTPUTS = [
-    ("FIO4", "Relay 0 (NO)"),
-    ("FIO5", "Relay 1 (NO)"),
-    ("FIO6", "Relay 2 (NO)"),
-    ("FIO7", "Relay 3 (NO)"),
-    ("EIO0", "Relay 4 (NC)"),
-    ("EIO1", "Relay 5 (NC)"),
-    ("EIO2", "Relay 6 (NC)"),
-    ("EIO3", "Relay 7 (NC)"),
+    ("EIO0", "Relay 0 (NO)"),
+    ("EIO1", "Relay 1 (NO)"),
+    ("EIO2", "Relay 2 (NO)"),
+    ("EIO3", "Relay 3 (NO)"),
+    ("EIO4", "Relay 4 (NC)"),
+    ("EIO5", "Relay 5 (NC)"),
+    ("EIO6", "Relay 6 (NC)"),
+    ("EIO7", "Relay 7 (NC)"),
 ]
 
 CONFIG_D_MAP = {
-    "D0": "FIO4",
-    "D1": "FIO5",
-    "D2": "FIO6",
-    "D3": "FIO7",
-    "D4": "EIO0",
-    "D5": "EIO1",
-    "D6": "EIO2",
-    "D7": "EIO3",
+    "D0": "EIO0",
+    "D1": "EIO1",
+    "D2": "EIO2",
+    "D3": "EIO3",
+    "D4": "EIO4",
+    "D5": "EIO5",
+    "D6": "EIO6",
+    "D7": "EIO7",
 }
 
 RELAY_LOGIC = {
@@ -106,6 +105,7 @@ RELAY_LOGIC = {
     "D6": "NC",
     "D7": "NC",
 }
+
 
 CONFIG_A_MAP = {
     "A0": "DAC0",
@@ -220,6 +220,31 @@ class ChannelDisplayRing:
             y = np.concatenate((self.y[ch][start:], self.y[ch][:self.write_idx]))
             return t, y
 
+    def snapshot_group(self, channels: List[str]) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+        with self.lock:
+            if self.size == 0:
+                return (
+                    np.empty((0,), dtype=np.float64),
+                    {ch: np.empty((0,), dtype=np.float32) for ch in channels},
+                )
+
+            start = (self.write_idx - self.size) % self.capacity
+
+            if start < self.write_idx:
+                t = self.t[start:self.write_idx].copy()
+                y_map = {
+                    ch: self.y[ch][start:self.write_idx].copy()
+                    for ch in channels
+                }
+                return t, y_map
+
+            t = np.concatenate((self.t[start:], self.t[:self.write_idx]))
+            y_map = {
+                ch: np.concatenate((self.y[ch][start:], self.y[ch][:self.write_idx]))
+                for ch in channels
+            }
+            return t, y_map
+
     def snapshot(self) -> Tuple[np.ndarray, np.ndarray]:
         with self.lock:
             if self.size == 0:
@@ -246,8 +271,10 @@ class ChannelDisplayRing:
 # ============================================================
 class LabJackApp:
     def __init__(self):
+        self.preset_active = False
         self.t7_handle: Optional[int] = None
-        self.t4_handle: Optional[int] = None
+
+        self._channel_update_offset = 0 # unused now
 
         self.stop_event = threading.Event()
         self.run_lock = threading.Lock()
@@ -262,8 +289,9 @@ class LabJackApp:
         self.display_queue: queue.Queue[RawBlock] = queue.Queue(maxsize=200)
         self.event_queue: queue.Queue[EventItem] = queue.Queue()
 
-        self.display_ring = ChannelDisplayRing(AIN_NAMES, WINDOW_SECONDS, GUI_HZ)
+        self.display_ring = ChannelDisplayRing(AIN_NAMES, WINDOW_SECONDS, DISPLAY_POINTS_PER_SEC)
         self.latest_display_values = {ch: float("nan") for ch in AIN_NAMES}
+        self.current_stream_time = 0.0
 
         self.stream_thread: Optional[threading.Thread] = None
         self.logger_thread: Optional[threading.Thread] = None
@@ -283,6 +311,7 @@ class LabJackApp:
         self.scheduled_timers_lock = threading.Lock()
 
         self.dio_states = {name: 0 for name, _ in DIGITAL_OUTPUTS}
+        self.dac_states = {name: 0.0 for name in CONFIG_A_MAP.values()}
 
         self._last_gui_update = 0.0
         self._status_text = "Status: starting…"
@@ -311,7 +340,6 @@ class LabJackApp:
 
     def open_labjack(self):
         self.t7_handle = None
-        self.t4_handle = None
 
         try:
             self.t7_handle = ljm.openS("T7", "ANY", "ANY")
@@ -319,15 +347,8 @@ class LabJackApp:
         except Exception as e:
             self.log_event(f"T7 NOT FOUND: {e}")
 
-        try:
-            self.t4_handle = ljm.openS("T4", "ANY", "ANY")
-            self.log_event("T4 CONNECTED")
-        except Exception as e:
-            self.log_event(f"T4 NOT FOUND: {e}")
-
         self._set_status(
-            f"T7={'OK' if self.t7_handle is not None else 'MISSING'} | "
-            f"T4={'OK' if self.t4_handle is not None else 'MISSING'}"
+            f"T7={'OK' if self.t7_handle is not None else 'MISSING'}"
         )
 
     def close_labjack(self):
@@ -337,7 +358,7 @@ class LabJackApp:
             except Exception:
                 pass
 
-        for handle in (self.t7_handle, self.t4_handle):
+        for handle in (self.t7_handle):
             if handle is not None:
                 try:
                     ljm.close(handle)
@@ -345,30 +366,90 @@ class LabJackApp:
                     pass
 
         self.t7_handle = None
-        self.t4_handle = None
 
         time.sleep(0.2)
 
     def set_dio(self, dio_name: str, value: int, do_log: bool = True):
-        if self.t4_handle is None:
+        if self.t7_handle is None or not dio_name:
             return
+
         try:
-            ljm.eWriteName(self.t4_handle, dio_name, int(value))
+            ljm.eWriteName(self.t7_handle, dio_name, int(value))
+
             self.dio_states[dio_name] = int(value)
+
             if do_log:
-                self.log_event(f"BUTTON {dio_name}={int(value)}")
+                self.log_event(f"DIO {dio_name}={int(value)}")
+
+        except Exception as e:
+            self._set_status(f"DIO error on {dio_name}: {e}")
+
         except Exception as e:
             self._set_status(f"DIO error on {dio_name}: {e}")
 
     def set_dac(self, dac_name: str, value: float, do_log: bool = True):
-        if self.t4_handle is None:
+        if self.t7_handle is None:
             return
         try:
-            ljm.eWriteName(self.t4_handle, dac_name, float(value))
+            print(f"WRITING {dac_name} = {value}")
+            val = float(value)
+            ljm.eWriteName(self.t7_handle, dac_name, val)
+            self.dac_states[dac_name] = val
             if do_log:
                 self.log_event(f"ANALOG_OUT {dac_name}={float(value):.6f}")
         except Exception as e:
             self._set_status(f"DAC error on {dac_name}: {e}")
+
+    def _set_linear_gauge(self, ch: str, value: float):
+        if not np.isfinite(value):
+            value = 0.0
+
+        norm = max(0.0, min(1.0, value / 10.0))
+
+        gauge_h = 180
+        gauge_w = 42
+        pad = 2
+
+        inner_left = pad
+        inner_right = gauge_w - pad
+        inner_bottom = gauge_h - pad
+        inner_top = pad
+
+        fill_top = inner_bottom - ((inner_bottom - inner_top) * norm)
+
+        dpg.configure_item(
+            f"bar_fill_{ch}",
+            pmin=(inner_left, fill_top),
+            pmax=(inner_right, inner_bottom),
+        )
+
+        dpg.set_value(f"bar_label_{ch}", f"{value:.2f} V")
+
+    def _set_dac_gauge(self, dac: str, value: float):
+        if not np.isfinite(value):
+            value = 0.0
+
+        norm = max(0.0, min(1.0, value / 5.0))
+
+        gauge_h = 120
+        gauge_w = 42
+        pad = 2
+
+        inner_left = pad
+        inner_right = gauge_w - pad
+        inner_bottom = gauge_h - pad
+        inner_top = pad
+
+        fill_top = inner_bottom - ((inner_bottom - inner_top) * norm)
+
+        dpg.configure_item(
+            f"dac_fill_{dac}",
+            pmin=(inner_left, fill_top),
+            pmax=(inner_right, inner_bottom),
+        )
+
+        percent = max(0.0, min(100.0, value * 100.0 / 5.0))
+        dpg.set_value(f"dac_label_{dac}", f"{dac} [{percent:.0f}%]")
 
     # ----------------------------
     # Run lifecycle
@@ -376,7 +457,7 @@ class LabJackApp:
     def start_run(self):
         with self.run_lock:
             self.stop_event.clear()
-            self.display_ring.reset(WINDOW_SECONDS, GUI_HZ)
+            self.display_ring.reset(WINDOW_SECONDS, DISPLAY_POINTS_PER_SEC)
             self.channel_thresholds = dict(DEFAULT_CHANNEL_THRESHOLDS)
             self.latest_display_values = {ch: float("nan") for ch in AIN_NAMES}
             self._clear_queues()
@@ -390,21 +471,25 @@ class LabJackApp:
             self.bin_path = f"rawlog_{stamp}.bin"
             self.events_path = f"events_{stamp}.csv"
             self.csv_path = f"data_{stamp}.csv"
-
             self.open_labjack()
 
+            # ----------------------------
+            # Configure T7 digital outputs
+            # ----------------------------
+            for dio_name, _ in DIGITAL_OUTPUTS:
+                try:
+                    ljm.eWriteName(self.t7_handle, dio_name, 0)
+
+                except Exception as e:
+                    self._set_status(f"DIO init error {dio_name}: {e}")
+
             try:
-                ljm.eWriteName(self.t4_handle, self.shutdown_pin, 0.0)
+                ljm.eWriteName(self.t7_handle, self.shutdown_pin, 0.0)
             except Exception:
                 pass
 
-            for dkey, fio in CONFIG_D_MAP.items():
-                if RELAY_LOGIC.get(dkey) == "NC":
-                    value = 1
-                else:
-                    value = 0
-
-                self.set_dio(fio, value, do_log=False)
+            for _, fio in CONFIG_D_MAP.items():
+                self.set_dio(fio, 0, do_log=False)
 
             self.stream_thread = threading.Thread(target=self._stream_loop, daemon=True)
             self.stream_thread.start()
@@ -446,9 +531,19 @@ class LabJackApp:
         self.start_run()
 
     def kill_switch(self):
-        self.stop_run()
-        self.build_csv_if_possible()
-        dpg.stop_dearpygui()
+        try:
+            self.cancel_all_scheduled_steps()
+            self.stop_run()
+            self.build_csv_if_possible()
+
+        except Exception as e:
+            print(f"Kill switch error: {e}")
+
+        finally:
+            dpg.stop_dearpygui()
+
+            import os
+            os._exit(0)
 
     def _clear_queues(self):
         while not self.raw_queue.empty():
@@ -480,8 +575,8 @@ class LabJackApp:
             addrs, _ = ljm.namesToAddresses(len(AIN_NAMES), AIN_NAMES)
             n_ch = len(addrs)
 
-            scans_per_read = int(self.requested_stream_hz / 2)
-            scans_per_read = max(1, min(scans_per_read, 1000))
+            scans_per_read = max(10, int(self.requested_stream_hz / GUI_HZ))
+            scans_per_read = min(scans_per_read, 50)
 
             try:
                 ljm.eWriteName(self.t7_handle, "STREAM_CLOCK_SOURCE", 0)
@@ -550,6 +645,12 @@ class LabJackApp:
                 )
 
                 self.raw_queue.put(block)
+
+                if self.display_queue.full():
+                    try:
+                        self.display_queue.get_nowait()
+                    except queue.Empty:
+                        pass
 
                 try:
                     self.display_queue.put_nowait(block)
@@ -778,6 +879,7 @@ class LabJackApp:
             return
 
         self.cancel_all_scheduled_steps()
+        self.preset_active = True
         self.log_event(f'CONFIG_START "{self.loaded_config_name}" steps={len(self.loaded_steps)}')
 
         with self.scheduled_timers_lock:
@@ -791,28 +893,24 @@ class LabJackApp:
         self._set_status(f'Preset running: {self.loaded_config_name}')
 
     def _run_config_step(self, step: ConfigStep):
+        if not self.preset_active:
+            return
+
         parts = []
 
         for dkey, fio in CONFIG_D_MAP.items():
             if dkey in step.digital:
                 raw = bool(step.digital[dkey])
 
-                if RELAY_LOGIC.get(dkey) == "NC":
-                    value = 0 if raw else 1
-                else:
-                    value = 1 if raw else 0
+                value = 1 if raw else 0
 
                 self.set_dio(fio, value, do_log=False)
                 parts.append(f"{dkey}={int(raw)}")
 
         for akey, dac in CONFIG_A_MAP.items():
-            if akey in step.analog:
-                try:
-                    value = float(step.analog[akey])
-                except Exception:
-                    value = 0.0
-                self.set_dac(dac, value, do_log=False)
-                parts.append(f"{akey}={value:.6f}")
+            value = float(step.analog.get(akey, 0.0))
+            print(f"FORCED WRITE {dac} = {value}")
+            self.set_dac(dac, value, do_log=False)
 
         if parts:
             self.log_event("CONFIG_STEP " + " ".join(parts))
@@ -820,15 +918,28 @@ class LabJackApp:
             self.log_event("CONFIG_STEP (no outputs)")
 
     def cancel_all_scheduled_steps(self):
+        self.preset_active = False
+
         with self.scheduled_timers_lock:
             for timer in self.scheduled_timers:
                 try:
                     timer.cancel()
                 except Exception:
                     pass
-            if self.scheduled_timers:
-                self.log_event("CONFIG_STOP")
+
+            had_timers = bool(self.scheduled_timers)
             self.scheduled_timers.clear()
+
+        for _, fio in CONFIG_D_MAP.items():
+            self.set_dio(fio, 0, do_log=False)
+
+        for _, dac in CONFIG_A_MAP.items():
+            self.set_dac(dac, 0.0, do_log=False)
+
+        if had_timers:
+            self.log_event("CONFIG_STOP")
+            self.log_event("CONFIG_RESET_OUTPUTS")
+            self._set_status("Preset stopped. Outputs reset to zero.")
 
     # ----------------------------
     # GUI
@@ -847,22 +958,9 @@ class LabJackApp:
             dpg.add_file_extension(".json", color=(0, 255, 0, 255))
             dpg.add_file_extension(".*")
 
-        with dpg.window(label="LabJack T7/T4 DAQ", tag="main_window"):
+        with dpg.window(label="LabJack T7 DAQ", tag="main_window"):
             dpg.add_text("Status: starting…", tag="status_text")
-
-            dpg.add_separator()
-
-            with dpg.group(horizontal=True):
-                dpg.add_text("Stream Hz:")
-                dpg.add_input_int(
-                    default_value=int(self.requested_stream_hz),
-                    min_value=MIN_STREAM_HZ,
-                    max_value=MAX_STREAM_HZ,
-                    width=120,
-                    tag="stream_hz_input",
-                )
-                dpg.add_button(label="Apply Stream Rate", callback=lambda: self._on_restart())
-                dpg.add_button(label="Stop + Save CSV + Exit", callback=lambda: self.kill_switch())
+            dpg.add_text("t = 0.000 s", tag="stream_time_text")
 
             dpg.add_separator()
 
@@ -877,15 +975,40 @@ class LabJackApp:
 
             with dpg.group(horizontal=True):
                 with dpg.child_window(width=220, height=-1, border=True):
-                    dpg.add_text("Outputs on T4")
+                    dpg.add_text("Outputs on T7")
                     dpg.add_separator()
+
+                    dpg.add_text("Analog Outputs (DAC)")
+
+                    with dpg.group(horizontal=True):
+                        for dac in CONFIG_A_MAP.values():
+                            with dpg.group():
+                                dpg.add_text(f"{dac} [0%]", tag=f"dac_label_{dac}")
+
+                                with dpg.drawlist(width=42, height=120, tag=f"dac_drawlist_{dac}"):
+                                    dpg.draw_rectangle(
+                                        pmin=(0, 0),
+                                        pmax=(42, 120),
+                                        color=(80, 80, 80, 255),
+                                        fill=(45, 45, 50, 255),
+                                        rounding=3,
+                                    )
+                                    dpg.draw_rectangle(
+                                        pmin=(2, 118),
+                                        pmax=(40, 118),
+                                        color=(90, 180, 90, 255),
+                                        fill=(90, 180, 90, 255),
+                                        rounding=2,
+                                        tag=f"dac_fill_{dac}",
+                                    )
 
                     for dio_name, label in DIGITAL_OUTPUTS:
                         dpg.add_checkbox(
                             label=label,
                             default_value=False,
                             tag=f"dio_checkbox_{dio_name}",
-                            callback=lambda s, a, u=dio_name: self._on_dio_toggle(u),
+                            user_data=dio_name,
+                            callback=self._on_dio_toggle,
                         )
 
                     dpg.add_separator()
@@ -912,13 +1035,27 @@ class LabJackApp:
                                     if "bar" in group_name:
                                         with dpg.group(horizontal=True):
                                             for ch in channels:
-                                                dpg.add_progress_bar(
-                                                    default_value=0.0,
-                                                    overlay=ch,
-                                                    tag=f"bar_{ch}",
-                                                    width=40,
-                                                    height=180,
-                                                )
+                                                with dpg.group():
+                                                    dpg.add_text(ch)
+
+                                                    with dpg.drawlist(width=42, height=180, tag=f"bar_drawlist_{ch}"):
+                                                        dpg.draw_rectangle(
+                                                            pmin=(0, 0),
+                                                            pmax=(42, 180),
+                                                            color=(80, 80, 80, 255),
+                                                            fill=(45, 45, 50, 255),
+                                                            rounding=3,
+                                                        )
+                                                        dpg.draw_rectangle(
+                                                            pmin=(2, 178),
+                                                            pmax=(40, 178),
+                                                            color=(90, 180, 90, 255),
+                                                            fill=(90, 180, 90, 255),
+                                                            rounding=2,
+                                                            tag=f"bar_fill_{ch}",
+                                                        )
+
+                                                    dpg.add_text("0.00 V", tag=f"bar_label_{ch}")
                                         continue
 
                                     with dpg.plot(label=group_name, height=220, width=-1):
@@ -932,7 +1069,7 @@ class LabJackApp:
                                             dpg.add_scatter_series([], [], parent=y_axis, tag=f"fault_{ch}")
 
         dpg.create_viewport(
-            title="LabJack T7/T4 DAQ",
+            title="LabJack T7 DAQ",
             width=1800,
             height=1100,
             resizable=True,
@@ -959,19 +1096,24 @@ class LabJackApp:
         self.requested_stream_hz = float(val)
         self.restart_run()
 
-    def _on_dio_toggle(self, dio_name: str):
+    def _on_dio_toggle(self, sender, app_data, user_data):
         if self._updating_dio_widgets:
             return
-        checked = bool(dpg.get_value(f"dio_checkbox_{dio_name}"))
+
+        dio_name = user_data
+        if dio_name is None:
+            return
+
+        checked = bool(app_data)
+
         dkey = None
         for k, v in CONFIG_D_MAP.items():
             if v == dio_name:
                 dkey = k
                 break
-        if dkey and RELAY_LOGIC.get(dkey) == "NC":
-            value = 0 if checked else 1
-        else:
-            value = 1 if checked else 0
+
+        value = 1 if checked else 0
+
         self.set_dio(dio_name, value, do_log=True)
 
     # ----------------------------
@@ -982,7 +1124,8 @@ class LabJackApp:
         if scan_hz <= 0.0:
             return
 
-        decim = max(1, int(scan_hz / GUI_HZ))
+        TARGET_POINTS_PER_SEC = DISPLAY_POINTS_PER_SEC
+        decim = max(1, int(scan_hz / TARGET_POINTS_PER_SEC))
 
         while True:
             try:
@@ -998,6 +1141,9 @@ class LabJackApp:
             y_out = block.data[idxs]
 
             self.display_ring.append_block(t_out, y_out)
+
+            if len(t_out) > 0:
+                self.current_stream_time = float(t_out[-1])
 
             last_row = y_out[-1]
             for i, ch in enumerate(AIN_NAMES):
@@ -1017,32 +1163,40 @@ class LabJackApp:
             if "bar" in group_name:
                 for ch in channels:
                     val = self.latest_display_values[ch]
-                    norm = max(0.0, min(1.0, val / 10.0))
-                    dpg.set_value(f"bar_{ch}", norm)
+                    self._set_linear_gauge(ch, val)
                 continue
 
             # GRAPH GROUP
-            for ch in channels:
-                t, y = self.display_ring.snapshot_channel(ch)
+            t, y_map = self.display_ring.snapshot_group(channels)
 
-                if t.size >= 2:
-                    if t.size > 300:
-                        idx = np.linspace(0, t.size - 1, 300).astype(np.int64)
-                        t = t[idx]
-                        y = y[idx]
+            if t.size >= 2:
+                t_disp = t - float(t[-1])
 
-                    t_disp = t - float(t[-1])
+                for ch in channels:
+                    y = y_map[ch]
                     dpg.set_value(f"series_{ch}", [t_disp, y])
 
-                    if self.sensor_fault[ch] and t.size > 0:
+                    if self.sensor_fault[ch]:
                         dpg.set_value(f"fault_{ch}", [[t_disp[-1]], [y[-1]]])
                     else:
                         dpg.set_value(f"fault_{ch}", [[], []])
 
             dpg.set_axis_limits(f"x_axis_{group_name}", -WINDOW_SECONDS, 0.0)
 
+
         with self._gui_state_lock:
             dpg.set_value("status_text", self._status_text)
+
+        dpg.set_value(
+            "stream_time_text",
+            f"t = {self.current_stream_time:.3f} s"
+        )
+
+        # ----------------------------
+        # Update DAC gauges
+        # ----------------------------
+        for dac, volts in self.dac_states.items():
+            self._set_dac_gauge(dac, volts)
 
         self._updating_dio_widgets = True
         try:
@@ -1057,10 +1211,12 @@ class LabJackApp:
                         dkey = k
                         break
 
-                if dkey and RELAY_LOGIC.get(dkey) == "NC":
-                    closed = not target
-                else:
+                relay_type = RELAY_LOGIC.get(dkey, "NO")
+
+                if relay_type == "NO":
                     closed = target
+                else:
+                    closed = not target
 
                 state_str = "CLOSED" if closed else "OPEN"
 
@@ -1074,7 +1230,7 @@ class LabJackApp:
         dpg.set_value(
             "metrics_text",
             f"inputs device=T7\n"
-            f"outputs device=T4\n"
+            f"outputs device=T7\n"
             f"actual={self.actual_stream_hz:.1f} Hz (req {self.requested_stream_hz:.0f})\n"
             f"device backlog={self.latest_device_backlog}\n"
             f"ljm backlog={self.latest_ljm_backlog}\n"
@@ -1083,6 +1239,8 @@ class LabJackApp:
             f"csv={self.csv_path}\n"
             f"preset={self.loaded_config_name}"
         )
+
+        pass
 
     def run(self):
         try:

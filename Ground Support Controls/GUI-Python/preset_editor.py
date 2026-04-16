@@ -36,7 +36,7 @@ SENSOR_META = {
 def eng_to_volts(ch, value):
     meta = SENSOR_META.get(ch)
     if not meta:
-        return value  # fallback (already volts)
+        return value
 
     v_min, v_max = meta["v_min"], meta["v_max"]
     e_min, e_max = meta["e_min"], meta["e_max"]
@@ -135,7 +135,10 @@ class StepDialog(QDialog):
         return {
             "t": self.time.value(),
             "digital": {ch["key"]: self.digs[ch["key"]].isChecked() for ch in RELAY_CHANNELS},
-            "analog": {k:self.anas[k].value() for k in ANALOG_CHANNELS}
+            "analog": {
+                k: (self.anas[k].value() * 5.0 / 100.0)
+                for k in ANALOG_CHANNELS
+            }
         }
 
 # -------------------------
@@ -209,7 +212,7 @@ class Editor(QWidget):
                 text = "volts (raw)"
 
             item = QTableWidgetItem(text)
-            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)  # 🔒 read-only
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.threshold_table.setItem(r, 2, item)
 
         steps = self.data["steps"]
@@ -223,7 +226,9 @@ class Editor(QWidget):
                 self.table.setItem(r, c, QTableWidgetItem(str(int(s["digital"][key]))))
                 c+=1
             for a in ANALOG_CHANNELS:
-                self.table.setItem(r,c,QTableWidgetItem(str(s["analog"][a])))
+                volts = s["analog"][a]
+                percent = volts * 100.0 / 5.0
+                self.table.setItem(r, c, QTableWidgetItem(f"{percent:.1f}"))
                 c+=1
 
     def collect_thresholds(self):
@@ -245,6 +250,36 @@ class Editor(QWidget):
                     pass
 
         self.data["thresholds"] = thresholds
+
+    def collect_steps(self):
+        steps = []
+
+        for r in range(self.table.rowCount()):
+            try:
+                step = {
+                    "t": float(self.table.item(r, 0).text()),
+                    "digital": {},
+                    "analog": {}
+                }
+
+                c = 1
+                for ch in RELAY_CHANNELS:
+                    item = self.table.item(r, c)
+                    step["digital"][ch["key"]] = bool(int(item.text())) if item else False
+                    c += 1
+
+                for a in ANALOG_CHANNELS:
+                    item = self.table.item(r, c)
+                    percent = float(item.text()) if item else 0.0
+                    volts = percent * 5.0 / 100.0
+                    step["analog"][a] = volts
+                    c += 1
+
+                steps.append(step)
+            except:
+                pass
+
+        self.data["steps"] = steps
 
     def row(self):
         sel=self.table.selectionModel().selectedRows()
@@ -334,8 +369,9 @@ class Main(QMainWindow):
     def save(self):
         if self.file:
             self.editor.collect_thresholds()
+            self.editor.collect_steps()
             save_preset(self.file, self.data)
-            self.dirty=False
+            self.dirty = False
 
 def main():
     app=QApplication([])
