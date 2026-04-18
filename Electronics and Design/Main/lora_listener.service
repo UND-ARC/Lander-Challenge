@@ -1,0 +1,18 @@
+#put this file here : /etc/systemd/system/lora_listener.service
+# then run: sudo systemctl enable --now lora_listener.service
+#
+# this would need to be changed if not using a venv
+[Unit]
+Description=LoRa Launch Listener
+After=network.target
+
+[Service]
+ExecStart="/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3" -u  "/home/ARC/Gi>
+WorkingDirectory=/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main
+StandardOutput=inherit
+StandardError=inherit
+Restart=on-failure
+User=ARC
+
+[Install]
+WantedBy=multi-user.target
