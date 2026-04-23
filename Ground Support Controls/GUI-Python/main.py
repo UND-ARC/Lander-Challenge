@@ -1,7 +1,6 @@
 import csv
 import json
 import queue
-import struct
 import threading
 import time
 from dataclasses import dataclass, field
@@ -122,6 +121,20 @@ Y_MAX = 5.1
 def stamp_now() -> str:
     return datetime.now().strftime("%Y%m%d_%H%M%S")
 
+def safe_name(text: str) -> str:
+    text = (text or "").strip()
+    if not text or text.lower() == "none":
+        return "nopreset"
+
+    cleaned = []
+    for ch in text:
+        if ch.isalnum():
+            cleaned.append(ch.lower())
+        elif ch in (" ", "-", "_"):
+            cleaned.append("_")
+
+    name = "".join(cleaned).strip("_")
+    return name or "nopreset"
 
 @dataclass
 class EventItem:
@@ -468,9 +481,11 @@ class LabJackApp:
             self.latest_ljm_backlog = 0
 
             stamp = stamp_now()
-            self.bin_path = f"rawlog_{stamp}.bin"
-            self.events_path = f"events_{stamp}.csv"
-            self.csv_path = f"data_{stamp}.csv"
+            base_dir = Path(__file__).resolve().parent
+            preset_tag = safe_name(self.loaded_config_name)
+            self.bin_path = ""
+            self.events_path = str(base_dir / f"events_{preset_tag}_{stamp}.csv")
+            self.csv_path = str(base_dir / f"log_{preset_tag}_{stamp}.csv")
             self.open_labjack()
 
             # ----------------------------
@@ -532,18 +547,42 @@ class LabJackApp:
 
     def kill_switch(self):
         try:
+            self.preset_active = False
             self.cancel_all_scheduled_steps()
+
+            for _, fio in CONFIG_D_MAP.items():
+                self.set_dio(fio, 0, do_log=False)
+
+            for _, dac in CONFIG_A_MAP.items():
+                self.set_dac(dac, 0.0, do_log=False)
+
+            if self.t7_handle is not None:
+                try:
+                    ljm.eWriteName(self.t7_handle, self.shutdown_pin, 0.0)
+                except Exception:
+                    pass
+
             self.stop_run()
-            self.build_csv_if_possible()
+
+            if Path(self.csv_path).exists():
+                print(f"Saved sensor CSV: {Path(self.csv_path).resolve()}")
+            else:
+                print(f"Sensor CSV was not created: {self.csv_path}")
+
+            if Path(self.events_path).exists():
+                print(f"Saved events CSV: {Path(self.events_path).resolve()}")
+            else:
+                print(f"Events CSV was not created: {self.events_path}")
 
         except Exception as e:
             print(f"Kill switch error: {e}")
 
         finally:
             dpg.stop_dearpygui()
+            dpg.destroy_context()
 
-            import os
-            os._exit(0)
+            import sys
+            sys.exit(0)
 
     def _clear_queues(self):
         while not self.raw_queue.empty():
@@ -674,17 +713,16 @@ class LabJackApp:
     # ----------------------------
     # Logger thread
     # ----------------------------
+
     def _logger_loop(self):
         try:
-            with open(self.bin_path, "wb") as bin_f, open(
-                self.events_path, "w", newline="", encoding="utf-8"
+            with open(self.csv_path, "w", newline="", encoding="utf-8") as data_f, open(
+                    self.events_path, "w", newline="", encoding="utf-8"
             ) as evt_f:
-                bin_f.write(b"LJBLK1\0\0")
-                bin_f.write(struct.pack("<I", 1))
-                bin_f.write(struct.pack("<I", len(AIN_NAMES)))
-                bin_f.write(struct.pack("<d", float(self.actual_stream_hz)))
-
+                data_writer = csv.writer(data_f)
                 evt_writer = csv.writer(evt_f)
+
+                data_writer.writerow(["time"] + AIN_NAMES)
                 evt_writer.writerow(["time", "event"])
 
                 last_flush = time.perf_counter()
@@ -703,13 +741,14 @@ class LabJackApp:
                         block = None
 
                     if block is not None:
-                        bin_f.write(struct.pack("<Q", int(block.start_index)))
-                        bin_f.write(struct.pack("<I", int(block.n_scans)))
-                        bin_f.write(block.data.tobytes(order="C"))
+                        for i in range(block.n_scans):
+                            t = (block.start_index + i) / self.actual_stream_hz
+                            row = [f"{t:.6f}"] + [f"{float(v):.6f}" for v in block.data[i]]
+                            data_writer.writerow(row)
 
                     now = time.perf_counter()
                     if now - last_flush >= 1.0:
-                        bin_f.flush()
+                        data_f.flush()
                         evt_f.flush()
                         last_flush = now
 
@@ -720,16 +759,18 @@ class LabJackApp:
                         break
                     evt_writer.writerow([f"{ev.t:.6f}", ev.msg])
 
-                while not self.display_queue.empty():
+                while not self.raw_queue.empty():
                     try:
-                        block = self.display_queue.get_nowait()
+                        block = self.raw_queue.get_nowait()
                     except queue.Empty:
                         break
-                    bin_f.write(struct.pack("<Q", int(block.start_index)))
-                    bin_f.write(struct.pack("<I", int(block.n_scans)))
-                    bin_f.write(block.data.tobytes(order="C"))
 
-                bin_f.flush()
+                    for i in range(block.n_scans):
+                        t = (block.start_index + i) / self.actual_stream_hz
+                        row = [f"{t:.6f}"] + [f"{float(v):.6f}" for v in block.data[i]]
+                        data_writer.writerow(row)
+
+                data_f.flush()
                 evt_f.flush()
 
         except Exception as e:
@@ -739,52 +780,7 @@ class LabJackApp:
     # CSV export
     # ----------------------------
     def build_csv_if_possible(self):
-        if not self.bin_path or not Path(self.bin_path).exists():
-            return
-
-        try:
-            with open(self.bin_path, "rb") as in_f, open(
-                self.csv_path, "w", newline="", encoding="utf-8"
-            ) as out_f:
-                magic = in_f.read(8)
-                if magic != b"LJBLK1\0\0":
-                    self._set_status("CSV export error: invalid binary header")
-                    return
-
-                version = struct.unpack("<I", in_f.read(4))[0]
-                n_channels = struct.unpack("<I", in_f.read(4))[0]
-                actual_scan_hz = struct.unpack("<d", in_f.read(8))[0]
-
-                if version != 1 or n_channels != len(AIN_NAMES) or actual_scan_hz <= 0.0:
-                    self._set_status("CSV export error: invalid binary metadata")
-                    return
-
-                writer = csv.writer(out_f)
-                writer.writerow(["time"] + AIN_NAMES)
-
-                block_header_size = struct.calcsize("<QI")
-
-                while True:
-                    hdr = in_f.read(block_header_size)
-                    if not hdr or len(hdr) < block_header_size:
-                        break
-
-                    start_index, n_scans = struct.unpack("<QI", hdr)
-                    raw = in_f.read(n_scans * n_channels * 4)
-                    if len(raw) < n_scans * n_channels * 4:
-                        break
-
-                    data = np.frombuffer(raw, dtype=np.float32).reshape((n_scans, n_channels))
-
-                    rows = []
-                    for i in range(n_scans):
-                        t = (start_index + i) / actual_scan_hz
-                        rows.append([f"{t:.6f}"] + [f"{float(v):.6f}" for v in data[i]])
-                    writer.writerows(rows)
-
-            self._set_status(f"Saved CSV: {self.csv_path}")
-        except Exception as e:
-            self._set_status(f"CSV export error: {e}")
+        return
 
     # ----------------------------
     # Config / preset
@@ -853,6 +849,29 @@ class LabJackApp:
             self.loaded_config_name = name or Path(path).stem
             self.loaded_config_path = path
             self.loaded_steps = loaded_steps
+
+            preset_tag = safe_name(self.loaded_config_name)
+            base_dir = Path(__file__).resolve().parent
+
+            old_events_path = Path(self.events_path) if self.events_path else None
+            old_csv_path = Path(self.csv_path) if self.csv_path else None
+
+            if old_events_path and old_events_path.exists() and "events_nopreset_" in old_events_path.name:
+                new_events_path = base_dir / old_events_path.name.replace("events_nopreset_", f"events_{preset_tag}_",
+                                                                          1)
+                try:
+                    old_events_path.rename(new_events_path)
+                    self.events_path = str(new_events_path)
+                except Exception:
+                    pass
+
+            if old_csv_path and old_csv_path.exists() and "log_nopreset_" in old_csv_path.name:
+                new_csv_path = base_dir / old_csv_path.name.replace("log_nopreset_", f"log_{preset_tag}_", 1)
+                try:
+                    old_csv_path.rename(new_csv_path)
+                    self.csv_path = str(new_csv_path)
+                except Exception:
+                    pass
 
             dpg.set_value(
                 "cfg_loaded_text",
@@ -968,6 +987,7 @@ class LabJackApp:
                 dpg.add_button(label="Load Preset (.json)", callback=lambda: dpg.show_item("file_dialog"))
                 dpg.add_button(label="Start Preset", callback=lambda: self.activate_loaded_config())
                 dpg.add_button(label="Stop Preset", callback=lambda: self.cancel_all_scheduled_steps())
+                dpg.add_button(label="Kill Program", callback=lambda: self.kill_switch())
 
             dpg.add_text("Loaded: None", tag="cfg_loaded_text")
 

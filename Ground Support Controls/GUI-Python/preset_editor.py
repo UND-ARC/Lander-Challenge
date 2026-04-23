@@ -1,10 +1,9 @@
 import json
-from typing import Dict, Any, Optional
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QApplication, QDialog, QDoubleSpinBox, QFileDialog, QFormLayout,
-    QGroupBox, QHBoxLayout, QLabel, QMainWindow, QMessageBox,
+    QGroupBox, QHBoxLayout, QLabel, QMainWindow,
     QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout,
     QWidget, QCheckBox, QStackedWidget
 )
