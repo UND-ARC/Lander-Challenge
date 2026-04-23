@@ -36,7 +36,7 @@ class LabJackWorker(QtCore.QObject):
 
     def run(self):
         try:
-            self.handle = ljm.openS("T7", "ANY", "ANY")
+            self.handle = ljm.openS("T7", "ETHERNET", "192.168.1.200")
 
             while self._running:
                 # 1. Read from LabJack (This is the "blocking" part)
@@ -46,7 +46,7 @@ class LabJackWorker(QtCore.QObject):
 
 
                 # TODO scale pressure values
-                PT_00 = scale_value(results[0], 0, 24, 0, 24)
+                PT_00 = scale_value(results[0], 0, 10, 0, 500)
                 PT_01 = scale_value(results[1], 0, 24, 0, 24)
                 PT_02 = scale_value(results[2], 0, 24, 0, 24)
                 PT_03 = scale_value(results[3], 0, 24, 0, 24)
@@ -57,7 +57,7 @@ class LabJackWorker(QtCore.QObject):
                 PT_08 = scale_value(results[8], 0, 24, 0, 24)
                 PT_09 = scale_value(results[9], 0, 24, 0, 24)
                 PT_10 = scale_value(results[10], 0, 24, 0, 24)
-                PT_11 = scale_value(results[11], 0, 24, 0, 24)
+                PT_11 = scale_value(results[11], 0, 10, 0, 500)
                 PT_12 = scale_value(results[12], 0, 24, 0, 24)
 
                 TC_15 = scale_value(results[13], 0, 10, -150, 1370)
