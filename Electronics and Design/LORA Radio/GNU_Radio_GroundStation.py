@@ -10,8 +10,6 @@
 
 from PyQt5 import Qt
 from gnuradio import qtgui
-from gnuradio import blocks
-import pmt
 from gnuradio import blocks, gr
 from gnuradio import gr
 from gnuradio.filter import firdes
@@ -23,6 +21,8 @@ from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
 from gnuradio import iio
+from gnuradio import pdu
+import pmt
 import gnuradio.lora_sdr as lora_sdr
 import sip
 import threading
@@ -71,9 +71,10 @@ class GNU_Radio_GroundStation(gr.top_block, Qt.QWidget):
         # Blocks
         ##################################################
 
-        self.qtgui_edit_box_msg_0 = qtgui.edit_box_msg(qtgui.STRING, 'no message', 'Message', True, True, '1', None)
+        self.qtgui_edit_box_msg_0 = qtgui.edit_box_msg(qtgui.STRING, 'Start', 'Message', True, True, '1', None)
         self._qtgui_edit_box_msg_0_win = sip.wrapinstance(self.qtgui_edit_box_msg_0.qwidget(), Qt.QWidget)
         self.top_layout.addWidget(self._qtgui_edit_box_msg_0_win)
+        self.pdu_pdu_filter_0 = pdu.pdu_filter(pmt.intern("key"), pmt.intern("value"), False)
         self.lora_tx_0 = lora_sdr.lora_sdr_lora_tx(
             bw=125000,
             cr=1,
@@ -82,7 +83,6 @@ class GNU_Radio_GroundStation(gr.top_block, Qt.QWidget):
             samp_rate=samp_rate,
             sf=7,
          ldro_mode=2,frame_zero_padd=1280,sync_word=[0x12] )
-        self.lora_sdr_crc_verif_0 = lora_sdr.crc_verif( 1, False)
         self.lora_rx_0 = lora_sdr.lora_sdr_lora_rx( bw=125000, cr=1, has_crc=True, impl_head=False, pay_len=255, samp_rate=samp_rate, sf=7, sync_word=[0x12], soft_decoding=False, ldro_mode=2, print_rx=[True,True])
         self.iio_pluto_source_0 = iio.fmcomms2_source_fc32('usb:1.12.5' if 'usb:1.12.5' else iio.get_pluto_uri(), [True, True], 32768)
         self.iio_pluto_source_0.set_len_tag_key('packet_len')
@@ -101,19 +101,17 @@ class GNU_Radio_GroundStation(gr.top_block, Qt.QWidget):
         self.iio_pluto_sink_0.set_samplerate(samp_rate)
         self.iio_pluto_sink_0.set_attenuation(0, 10.0)
         self.iio_pluto_sink_0.set_filter_params('Auto', '', 0, 0)
-        self.blocks_message_strobe_1 = blocks.message_strobe(pmt.intern("TEST"), 1000)
         self.blocks_message_debug_0 = blocks.message_debug(True, gr.log_levels.info)
 
 
         ##################################################
         # Connections
         ##################################################
-        self.msg_connect((self.blocks_message_strobe_1, 'strobe'), (self.lora_tx_0, 'in'))
+        self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'log'))
         self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'print'))
-        self.msg_connect((self.lora_sdr_crc_verif_0, 'msg'), (self.blocks_message_debug_0, 'print'))
-        self.msg_connect((self.qtgui_edit_box_msg_0, 'msg'), (self.blocks_message_strobe_1, 'set_msg'))
+        self.msg_connect((self.pdu_pdu_filter_0, 'pdus'), (self.lora_tx_0, 'in'))
+        self.msg_connect((self.qtgui_edit_box_msg_0, 'msg'), (self.pdu_pdu_filter_0, 'pdus'))
         self.connect((self.iio_pluto_source_0, 0), (self.lora_rx_0, 0))
-        self.connect((self.lora_rx_0, 0), (self.lora_sdr_crc_verif_0, 0))
         self.connect((self.lora_tx_0, 0), (self.iio_pluto_sink_0, 0))
 
 
@@ -142,7 +140,7 @@ def main(top_block_cls=GNU_Radio_GroundStation, options=None):
 
     tb = top_block_cls()
 
-    tb.start()
+    tb.start(32768)
     tb.flowgraph_started.set()
 
     tb.show()

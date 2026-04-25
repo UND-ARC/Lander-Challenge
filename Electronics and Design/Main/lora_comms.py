@@ -82,6 +82,12 @@ class LoRAComms:
         # Register 0x39 is LoRa Sync Word
         self.rfm9x._write_u8(0x39, LORA_SYNC_WORD)
 
+        # After initializing rfm9x, read back the register to confirm
+        sync_val = self.rfm9x._read_u8(0x39)
+        print(f"Sync word register 0x39 = 0x{sync_val:02X}  (expected 0x12)")
+
+
+
         self.last_message = " "
 
         logger.info(

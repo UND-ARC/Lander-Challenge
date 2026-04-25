@@ -12,7 +12,7 @@ options:
     generate_options: qt_gui
     hier_block_src_path: '.:'
     id: GNU_Radio_GroundStation
-    max_nouts: '0'
+    max_nouts: '32768'
     output_language: python
     placement: (0,0)
     qt_qss_theme: ''
@@ -58,23 +58,6 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [920, 128.0]
-    rotation: 0
-    state: enabled
-- name: blocks_message_strobe_1
-  id: blocks_message_strobe
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    msg: pmt.intern("TEST")
-    period: '1000'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [472, 496.0]
     rotation: 0
     state: enabled
 - name: iio_pluto_sink_0
@@ -160,23 +143,6 @@ blocks:
     coordinate: [368, 156.0]
     rotation: 0
     state: enabled
-- name: lora_sdr_crc_verif_0
-  id: lora_sdr_crc_verif
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    output_crc_check: 'False'
-    print_rx_msg: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [600, 304.0]
-    rotation: 0
-    state: enabled
 - name: lora_tx_0
   id: lora_tx
   parameters:
@@ -201,6 +167,24 @@ blocks:
     coordinate: [688, 412.0]
     rotation: 0
     state: enabled
+- name: pdu_pdu_filter_0
+  id: pdu_pdu_filter
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    invert: 'False'
+    k: pmt.intern("key")
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    v: pmt.intern("value")
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [384, 464.0]
+    rotation: 0
+    state: enabled
 - name: qtgui_edit_box_msg_0
   id: qtgui_edit_box_msg
   parameters:
@@ -215,23 +199,22 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     type: string
-    value: no message
+    value: Start
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [216, 464.0]
+    coordinate: [72, 456.0]
     rotation: 0
     state: enabled
 
 connections:
-- [blocks_message_strobe_1, strobe, lora_tx_0, in]
 - [iio_pluto_source_0, '0', lora_rx_0, '0']
-- [lora_rx_0, '0', lora_sdr_crc_verif_0, '0']
+- [lora_rx_0, out, blocks_message_debug_0, log]
 - [lora_rx_0, out, blocks_message_debug_0, print]
-- [lora_sdr_crc_verif_0, msg, blocks_message_debug_0, print]
 - [lora_tx_0, '0', iio_pluto_sink_0, '0']
-- [qtgui_edit_box_msg_0, msg, blocks_message_strobe_1, set_msg]
+- [pdu_pdu_filter_0, pdus, lora_tx_0, in]
+- [qtgui_edit_box_msg_0, msg, pdu_pdu_filter_0, pdus]
 
 metadata:
   file_format: 1
