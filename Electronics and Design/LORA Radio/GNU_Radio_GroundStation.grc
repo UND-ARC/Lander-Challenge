@@ -60,6 +60,23 @@ blocks:
     coordinate: [920, 128.0]
     rotation: 0
     state: enabled
+- name: blocks_message_strobe_0
+  id: blocks_message_strobe
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    msg: pmt.intern("          Start")
+    period: '1000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [344, 552.0]
+    rotation: 0
+    state: enabled
 - name: iio_pluto_sink_0
   id: iio_pluto_sink
   parameters:
@@ -182,7 +199,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [384, 464.0]
+    coordinate: [400, 392.0]
     rotation: 0
     state: enabled
 - name: qtgui_edit_box_msg_0
@@ -204,16 +221,16 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [72, 456.0]
+    coordinate: [120, 384.0]
     rotation: 0
     state: enabled
 
 connections:
+- [blocks_message_strobe_0, strobe, lora_tx_0, in]
 - [iio_pluto_source_0, '0', lora_rx_0, '0']
 - [lora_rx_0, out, blocks_message_debug_0, log]
 - [lora_rx_0, out, blocks_message_debug_0, print]
 - [lora_tx_0, '0', iio_pluto_sink_0, '0']
-- [pdu_pdu_filter_0, pdus, lora_tx_0, in]
 - [qtgui_edit_box_msg_0, msg, pdu_pdu_filter_0, pdus]
 
 metadata:

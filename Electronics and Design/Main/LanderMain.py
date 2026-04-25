@@ -27,15 +27,15 @@ def handle_command(cmd: str):
     with state_lock:
         if cmd == "Start":
             if estop_active:
-                print("[CMD] Start received but ESTOP is active — ignoring.")
+                print("[CMD] Start received but ESTOP is active - ignoring.")
             else:
                 system_running = True
-                print("[CMD] START command received — system running.")
+                print("[CMD] START command received - system running.")
 
         elif cmd == "Estop":
             system_running = False
             estop_active   = True
-            print("[CMD] *** ESTOP RECEIVED — ALL OPERATIONS HALTED ***")
+            print("[CMD] *** ESTOP RECEIVED - ALL OPERATIONS HALTED ***")
 
 
 def collect_telemetry() -> str:

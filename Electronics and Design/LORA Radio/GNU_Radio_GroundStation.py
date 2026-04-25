@@ -10,6 +10,8 @@
 
 from PyQt5 import Qt
 from gnuradio import qtgui
+from gnuradio import blocks
+import pmt
 from gnuradio import blocks, gr
 from gnuradio import gr
 from gnuradio.filter import firdes
@@ -22,7 +24,6 @@ from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
 from gnuradio import iio
 from gnuradio import pdu
-import pmt
 import gnuradio.lora_sdr as lora_sdr
 import sip
 import threading
@@ -101,15 +102,16 @@ class GNU_Radio_GroundStation(gr.top_block, Qt.QWidget):
         self.iio_pluto_sink_0.set_samplerate(samp_rate)
         self.iio_pluto_sink_0.set_attenuation(0, 10.0)
         self.iio_pluto_sink_0.set_filter_params('Auto', '', 0, 0)
+        self.blocks_message_strobe_0 = blocks.message_strobe(pmt.intern("          Start"), 1000)
         self.blocks_message_debug_0 = blocks.message_debug(True, gr.log_levels.info)
 
 
         ##################################################
         # Connections
         ##################################################
+        self.msg_connect((self.blocks_message_strobe_0, 'strobe'), (self.lora_tx_0, 'in'))
         self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'log'))
         self.msg_connect((self.lora_rx_0, 'out'), (self.blocks_message_debug_0, 'print'))
-        self.msg_connect((self.pdu_pdu_filter_0, 'pdus'), (self.lora_tx_0, 'in'))
         self.msg_connect((self.qtgui_edit_box_msg_0, 'msg'), (self.pdu_pdu_filter_0, 'pdus'))
         self.connect((self.iio_pluto_source_0, 0), (self.lora_rx_0, 0))
         self.connect((self.lora_tx_0, 0), (self.iio_pluto_sink_0, 0))
