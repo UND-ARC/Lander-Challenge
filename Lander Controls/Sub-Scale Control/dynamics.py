@@ -73,7 +73,7 @@ def nonlinear_dynamics(x, u):
     accel = F_world/mass
 
     #Torques acting on Body
-    tau_body = np.array([-thrust*lengthCOM*np.sin(alpha_x), -thrust*lengthCOM*np.sin(alpha_y), tau_z])
+    tau_body = np.array([thrust*lengthCOM*np.sin(alpha_x), thrust*lengthCOM*np.sin(alpha_y), tau_z])
 
     #Insert MMI into Diagonal Matrix
     I_matrix = np.diag([inertia_X, inertia_Y, inertia_Z])
@@ -128,4 +128,3 @@ def linearized_dynamics():
         B_Matrix[:, j] = (u_trim_up - u_trim_down) / (2*step)
     
     return A_Matrix, B_Matrix
-
