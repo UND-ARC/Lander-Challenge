@@ -1,39 +1,86 @@
 import time
 import sys
+import logging
+import threading
+
+from lora_comms import LoRAComms
 from RadioModule import LanderRadio
 from GPSModule import LanderGPS
 
-class LanderMain:
-    def __init__(self, spi, cs, reset, rfm9x):
-        print("Main Program Running. Monitoring for ESTOP...")
-        self.radio = LanderRadio(spi, cs, reset, rfm9x)
-        self.gps = LanderGPS()
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s"
+)
 
-    def runMainLoop(self):
-        try:
-            while True:
-                # 1. Check for Emergency Stop from Pluto+
-                self.check_for_estop()
+# ── Your application state ─────────────────────────────────────────────────────
+system_running = False
+estop_active   = False
+state_lock     = threading.Lock()
 
-                # 2. Get and Send GPS Data
-                data = ""
-                data = data + "GPS: " + str(self.get_gps())
+def handle_command(cmd: str):
+    """
+    Called by LoRAComms RX thread when a valid command arrives.
+    Runs in the RX thread — use locks if modifying shared state.
+    """
+    global system_running, estop_active
 
-                self.radio.send_data(data)
+    with state_lock:
+        if cmd == "Start":
+            if estop_active:
+                print("[CMD] Start received but ESTOP is active — ignoring.")
+            else:
+                system_running = True
+                print("[CMD] START command received — system running.")
 
-                time.sleep(1)
+        elif cmd == "Estop":
+            system_running = False
+            estop_active   = True
+            print("[CMD] *** ESTOP RECEIVED — ALL OPERATIONS HALTED ***")
 
-        except KeyboardInterrupt:
-            print("Manual Shutdown")
 
-    def check_for_estop(self):
-        if self.radio.check_for_estop():
-            print("ESTOP RECEIVED! Terminating vehicle functions.")
-            sys.exit(0)
+def collect_telemetry() -> str:
+    """
+    Build your telemetry string here.
+    Replace with real sensor reads from your existing code.
+    """
+    # Example — swap in your actual data sources
+    altitude  = 120.5
+    speed     = 15.3
+    battery   = 92
+    estop     = estop_active
+    running   = system_running
 
-    def get_gps(self):
-        location = self.gps.get_coords()
-        return location
+    return f"alt:{altitude:.1f},spd:{speed:.1f},bat:{battery}%,run:{int(running)},estop:{int(estop)}"
+
+def main():
+    print("Starting lander main program....")
+
+    #start up the radio and wait for start command
+    radio = LoRAComms(command_callback=handle_command)
+    radio.start()
+
+    print("Waiting for start command...")
+    #wait for radio to receive start command
+    while not system_running:
+        time.sleep(1)
+        print(f"last rssi:    {radio.last_rssi}")
+        print(f"last message: {radio.last_message}")
+
+    #start up the other sensors ....
+
+
+    while system_running:
+        telemetry = collect_telemetry()
+        success = radio.send_telemetry(telemetry)
+        if success:
+            print(f"[TX] {telemetry}")
+        time.sleep(2.0)
+
+
+
+
+if __name__ == "__main__":
+    main()
 
 
 
