@@ -2,24 +2,28 @@ import numpy as np
 #This Program Defines the Dynamics of the CPLC Sub-Scale Lander using Newton-Eular Equations
 
 #Walking Through the Program
-#26-34: Define globel variables and physcial lander properties and insert the inertia measurements into Inertia Matrix
-#37-47: Function that converts Body Dynamics (Body being the Lander) to World Dynamics (What someone stationary watching the lander is seeing)
+#30-35: Define globel variables and physcial lander properties and insert the inertia measurements into Inertia Matrix
+#40-50: Function that converts Body Dynamics (Body being the Lander) to World Dynamics (What someone stationary watching the lander is seeing)
 #       The inside of the function is not important so long as you understand that it converts from a Body frame to World frame
-#50-95: 51-59: Define X-Matrix describing the position, velcity, angle and angular rate of the lander. Some parts are grouped for later use
-#       62-65: Define U-Matrix describing the ability of the lander to change its dynamics. Thrust, Yaw due to motor torque and gimbal angle.
+#53-98: 55-62: Define X-Matrix describing the position, velcity, angle and angular rate of the lander. Some parts are grouped for later use
+#       65-68: Define U-Matrix describing the ability of the lander to change its dynamics. Thrust, Yaw due to motor torque and gimbal angle.
 #              Rotation_Matrix_Body_to_World function is called to define R and define the landers angular dynamics
-#       68-74: F_Thrust_Body: A matrix that describes how the lander reacts when forces are applied to (x,y,z)-Axis
+#       71-77: F_Thrust_Body: A matrix that describes how the lander reacts when forces are applied to (x,y,z)-Axis
 #              F_Thrust_World: Matrix Multiplication of R (Convert to World) and F_Thrust_Body Matrix 
 #              F_Gravity_World: Matrix describing how the force of gravity effects (x,y,z)-Axis
 #              F_World: Adds both Gravity Force and Lander Force (From F_Thrust_World) to describe descibe the sub of forces in the system
 #              Accel: Using Newton's 2nd Law the acceleration of the system can be found by dividing Total Force (F_World) by the Landers mass
-#       77-86: Tau_body is the torque of the lander calculated by: Tau_X = -T*lengthCOM*sin(gimbal angle x),
+#       80-89: Tau_body is the torque of the lander calculated by: Tau_X = -T*lengthCOM*sin(gimbal angle x),
 #              Tau_Y = -T*lengthCOM*sin(gimbal angle y), Tau_Z = Tau_Z (Torque produced by spinning motors)
 #              I_Matrix adds the inertia values for X,Y,Z into a diagonal matrix to be used in matrix multiplication
 #              Omega_Dot (Anglular Acceleration) = (I_Matrix)^-1 * (Tau_Body - Gyroscope coupling term)
 #              Theta_Dot = Omega defines the landers angular rate is the same as the world angular rate (Only works to +/- 15-20 degrees)
-#       89-95: By using the variables commputed in above, the x_dot matrix (Derivative of X-Matrix) can be formed. This is the value that is
-#              Returned by the nonlinear_dynamics function when given the landers current state (x) and the current inputs (u)   
+#       92-98: By using the variables commputed in above, the x_dot matrix (Derivative of X-Matrix) can be formed. This is the value that is
+#              Returned by the nonlinear_dynamics function when given the landers current state (x) and the current inputs (u)
+#98-134: Function that linearizes all dynamics from nonlinear_dynamics fucntion and creates LQR's A and B Matricies
+#        A and B matrices are computed using incrimented nonlinear_dynamics states for both state vectors and input vectors.
+#        Compute the controlers error by taking the state when step in increased minus when step is decreased and divided by two
+#        Return complete A Matrix (Controllers State Vectors) and B Matrix (Input Vectors)   
 
 
 #Physical Parameters

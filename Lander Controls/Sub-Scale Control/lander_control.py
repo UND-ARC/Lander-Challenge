@@ -2,6 +2,9 @@ import numpy as np
 from scipy.linalg import solve_continuous_are
 from dynamics import linearized_dynamics, mass, gravity
 
+# This Program Takes values from dynamics.py and creates an LQR with computed K values. The program takes in dynamics.py A and B matrices
+# Along with lander_control.py user entered
+
 thrust_min = 0 
 thrust_max = 11.77
 gimbal_max = np.radians(10)
