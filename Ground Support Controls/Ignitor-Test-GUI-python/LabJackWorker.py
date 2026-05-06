@@ -23,12 +23,28 @@ class LabJackWorker(QtCore.QObject):
 
 
 
-        self.channels_to_read = []
-        # pressures
-        for i in range(20):
-            if i == 13 or i == 14:
-                continue
-            self.channels_to_read.append(f"AIN{i}")
+        self.channels_to_read = [
+            "AIN0",
+            "AIN1",
+            "AIN2",
+            "AIN3",
+            "AIN4",
+            "AIN120",
+            "AIN121",
+            "AIN122",
+            "AIN123",
+            "AIN124",
+            "AIN125",
+            "AIN126",
+            "AIN127",
+            "AIN48",
+            "AIN49",
+            "AIN50",
+            "AIN51",
+            "AIN52",
+            "AIN53",
+        ]
+
 
         self.num_channels = len(self.channels_to_read)
 
@@ -46,16 +62,16 @@ class LabJackWorker(QtCore.QObject):
 
 
                 # TODO scale pressure values
-                PT_00 = scale_value(results[0], 0, 10, 0, 500)
-                PT_01 = scale_value(results[1], 0, 24, 0, 24)
-                PT_02 = scale_value(results[2], 0, 24, 0, 24)
-                PT_03 = scale_value(results[3], 0, 24, 0, 24)
-                PT_04 = scale_value(results[4], 0, 24, 0, 24)
-                PT_05 = scale_value(results[5], 0, 24, 0, 24)
-                PT_06 = scale_value(results[6], 0, 24, 0, 24)
-                PT_07 = scale_value(results[7], 0, 24, 0, 24)
-                PT_08 = scale_value(results[8], 0, 24, 0, 24)
-                PT_09 = scale_value(results[9], 0, 24, 0, 24)
+                PT_00 = scale_value(results[0], 0, 5, 0, 500)
+                PT_01 = scale_value(results[1], 0, 5, 0, 24)
+                PT_02 = scale_value(results[2], 0, 5, 0, 24)
+                PT_03 = scale_value(results[3], 0, 5, 0, 24)
+                PT_04 = scale_value(results[4], 0, 5, 0, 24)
+                PT_05 = scale_value(results[5], 0, 5, 0, 24)
+                PT_06 = scale_value(results[6], 0, 5, 0, 24)
+                PT_07 = scale_value(results[7], 0, 5, 0, 24)
+                PT_08 = scale_value(results[8], 0, 5, 0, 24)
+                PT_09 = scale_value(results[9], 0, 5, 0, 24)
                 PT_10 = scale_value(results[10], 0, 24, 0, 24)
                 PT_11 = scale_value(results[11], 0, 10, 0, 500)
                 PT_12 = scale_value(results[12], 0, 24, 0, 24)

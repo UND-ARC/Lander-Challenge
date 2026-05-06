@@ -359,7 +359,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             GOXMassFlowRate, GOXFlowChoked = calculate_flow(values["PT-01"], values["PT-02"], values["TC-15"], "O2")
 
-            self.MdotGOX.setText(f'{GOXMassFlowRate:.2f} km/h')
+            self.MdotGOX.setText(f'{GOXMassFlowRate:.2f} kg/s')
             if GOXFlowChoked:
                 self.MdotGOX.setStyleSheet("background-color: blue; color: white;")
             else:
