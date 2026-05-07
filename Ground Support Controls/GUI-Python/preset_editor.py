@@ -13,7 +13,11 @@ RELAY_CHANNELS = [
     for i in range(8)
 ]
 ANALOG_CHANNELS = [f"A{i}" for i in range(2)]
-AIN_CHANNELS = [f"AIN{i}" for i in range(56)]
+AIN_CHANNELS = [
+    *[f"AIN{i}" for i in range(0, 19)],
+    "AIN85",
+    *[f"AIN{i}" for i in range(20, 56)],
+]
 
 
 # -------------------------
@@ -29,7 +33,7 @@ SENSOR_META = {
     "AIN8":  {"unit": "psi", "v_min": 0.0, "v_max": 5.0,  "e_min": 0.0, "e_max": 500.0},   # 0–5V → 0–500 psi
 
     # -------- EXAMPLE (0–10V → 0–1000 psi) --------
-    "AIN19": {"unit": "psi", "v_min": 0.0, "v_max": 10.0, "e_min": 0.0, "e_max": 1000.0},  # 0–10V → 0–1000 psi
+    "AIN85": {"unit": "psi", "v_min": 0.0, "v_max": 10.0, "e_min": 0.0, "e_max": 1000.0},  # 0–10V → 0–1000 psi
 }
 
 def eng_to_volts(ch, value):

@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-
 import numpy as np
 from dearpygui import dearpygui as dpg
 from labjack import ljm
@@ -29,7 +28,8 @@ AIN_NAMES = [
     *[f"AIN{i}" for i in range(0, 8)],      # 8 cryo RTDs
     *[f"AIN{i}" for i in range(8, 16)],     # 8 cryo pressure
     *[f"AIN{i}" for i in range(16, 19)],    # 3 load cells
-    *[f"AIN{i}" for i in range(19, 39)],    # 20 non-cryo pressure
+    "AIN85",
+    *[f"AIN{i}" for i in range(20, 39)],    # 20 non-cryo pressure
     *[f"AIN{i}" for i in range(39, 56)],    # 17 thermocouples
 ]
 
@@ -58,7 +58,7 @@ DEFAULT_CHANNEL_THRESHOLDS = {
     "AIN16": 9.5, "AIN17": 9.5, "AIN18": 9.5,
 
     # 20 non-cryo pressure (0–10V)
-    "AIN19": 9.9, "AIN20": 9.9, "AIN21": 9.9, "AIN22": 9.9,
+    "AIN85": 9.9, "AIN20": 9.9, "AIN21": 9.9, "AIN22": 9.9,
     "AIN23": 9.9, "AIN24": 9.9, "AIN25": 9.9, "AIN26": 9.9,
     "AIN27": 9.9, "AIN28": 9.9, "AIN29": 9.9, "AIN30": 9.9,
     "AIN31": 9.9, "AIN32": 9.9, "AIN33": 9.9, "AIN34": 9.9,
