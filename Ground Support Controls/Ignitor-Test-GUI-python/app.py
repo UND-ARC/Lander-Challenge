@@ -44,6 +44,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.testTimer.timeout.connect(self.endTest)
 
 
+
         self.testTimerCH4Delay = QtCore.QTimer()
         self.testTimerCH4Delay.timeout.connect(self.CH4DelayTimeout)
 
@@ -59,6 +60,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.sparkTimer = QtCore.QTimer()
         self.sparkTimer.timeout.connect(self.toggleSparkRelay)
         self.sparkRelayOn = False
+
+        self.purgeTimer = QtCore.QTimer()
+        self.purgeTimer.timeout.connect(self.closeBothNitrogenValves)
+        self.purgeTimer.setSingleShot(True)
 
         # Track our current position
         self.current_step = 0
@@ -91,21 +96,33 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.ESTOP.clicked.connect(self.eStop)
         self.KillIgnitor.clicked.connect(self.killIgnitor)
 
+        self.labjackValues = {}
+
+        self.testDuration = 0
+        self.CH4Delay = 0
+        self.GOXDelay = 0
+        self.SparkDelay = 0
+
+        # abort
+        self.CH4AbortCounter = 0
+        self.GOXAbortCounter = 0
+        self.pressureAbortCounter = 0
+
 
 
     def start_test(self):
         #progress bar
         # 1. Get duration in seconds from spinbox
-        duration = self.FiringDurationSeconds.value()
+        self.testDuration = self.FiringDurationSeconds.value()
 
-        if duration <= 0:
+        if self.testDuration <= 0:
             return
 
         # 2. Set up the progress tracking
         # We will update every 100ms for a smooth look
         # Total steps = duration * 10 (since 10 * 100ms = 1 second)
         self.current_step = 0
-        self.total_steps = duration * 10
+        self.total_steps = self.testDuration * 10
 
         self.TestProgress.setMaximum(int(self.total_steps))
         self.TestProgress.setValue(0)
@@ -116,33 +133,38 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # 4. Start the timer (100ms interval)
         self.testTimerProgressBar.start(100)
 
-        self.testTimer.start(int(duration * 1000))
+        self.testTimer.start(int(self.testDuration * 1000))
         print("Starting Test!")
         self.worker.write_value("FIO4", 1) #green light on
 
-        #CH4
-        CH4Delay = self.CH4DelaySeconds.value()
+        #abort reset
+        self.CH4AbortCounter = 0
+        self.GOXAbortCounter = 0
+        self.pressureAbortCounter = 0
 
-        if CH4Delay <= 0:
+        #CH4
+        self.CH4Delay = self.CH4DelaySeconds.value()
+
+        if self.CH4Delay <= 0:
             self.openCH4Valve()
         else:
-            self.testTimerCH4Delay.start(int(CH4Delay*1000))
+            self.testTimerCH4Delay.start(int(self.CH4Delay*1000))
 
         #GOX
-        GOXDelay = self.GOXDelaySeconds.value()
+        self.GOXDelay = self.GOXDelaySeconds.value()
 
-        if GOXDelay <= 0:
+        if self.GOXDelay <= 0:
             self.openGOXValve()
         else:
-            self.testTimerGOXDelay.start(int(GOXDelay * 1000))
+            self.testTimerGOXDelay.start(int(self.GOXDelay * 1000))
 
         #Spark
-        sparkDelay = self.SparkDelaySeconds.value()
+        self.sparkDelay = self.SparkDelaySeconds.value()
 
-        if sparkDelay <= 0:
+        if self.sparkDelay <= 0:
             self.startFireSparkPlug()
         else:
-            self.testTimerSparkDelay.start(int(sparkDelay*1000))
+            self.testTimerSparkDelay.start(int(self.sparkDelay*1000))
 
 
 
@@ -158,6 +180,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.TimeRemaining.display(timeRemainingSec)
             self.testTimerProgressBar.stop()
             #self.TestProgress.setValue(0)
+
 
     def CH4DelayTimeout(self):
         self.testTimerCH4Delay.stop()
@@ -318,6 +341,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.openNitrogenValveGOX()
         self.openNitrogenValveCH4()
 
+        self.purgeTimer.start(15*1000) # 15 seconds
+
     def closeBothNitrogenValves(self):
         print("Closing Both Nitrogen Valves!")
         self.ManPurgeBoth.setText("CLOSED")
@@ -359,7 +384,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.ManSpark.setText("ON")
         self.ManSpark.setStyleSheet("background-color: #2ecc71; color: black; font-weight: bold;")  # green
         self.worker.write_value("FIO6", 1)
-        self.sparkTimer.start(333)
+        self.sparkTimer.start(143)
 
 
     def stopFireSparkPlug(self):
@@ -369,16 +394,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.sparkTimer.stop()
         self.worker.write_value("FIO6", 0)
-        self.worker.write_value("FIO7 ", 0)
+        self.worker.write_value("FIO7", 0)
 
     def toggleSparkRelay(self):
+        self.sparkRelayOn = not self.sparkRelayOn
+
         if self.sparkRelayOn:
-            self.worker.write_value("FIO7", 0)
-        else:
             self.worker.write_value("FIO7", 1)
+        else:
+            self.worker.write_value("FIO7", 0)
 
     def displayLabjackValues(self, values):
         try:
+            self.labjackValues = values
             # Format to 2 decimal place
             self.PT_00.setText(f'{values["PT-00"]:.2f} psi')
             self.PT_01.setText(f'{values["PT-01"]:.2f} psi')
@@ -391,7 +419,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
 
-            self.MdotGOX.setText(f'{values["GOXMassFlowRate"]:.2f} kg/s')
+            self.MdotGOX.setText(f'{values["GOXMassFlowRate"]:.4f} kg/s')
             if values["GOXFlowChoked"]:
                 self.MdotGOX.setStyleSheet("background-color: blue; color: white;")
             else:
@@ -399,15 +427,24 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
 
-            self.MdotCH4.setText(f'{values["CH4MassFlowRate"]:.2f} kg/s')
+            self.MdotCH4.setText(f'{values["CH4MassFlowRate"]:.4f} kg/s')
             if values["CH4FlowChoked"]:
                 self.MdotCH4.setStyleSheet("background-color: blue; color: white;")
             else:
                 self.MdotCH4.setStyleSheet("background-color: yellow; color: black;")
 
-            upperAlertPressure = 1000
-            lowerAlertPressure = -1000
-            if (values["PT-03"] > upperAlertPressure) or (values["PT-03"] < lowerAlertPressure) or (values["PT-04"] > upperAlertPressure) or (values["PT-04"] < lowerAlertPressure):
+            upstreamUpperAlertPressure = 1000 #TODO tune
+            upstreamLowerAlertPressure = -1000
+            downstreamUpperAlertPressure = 420
+            downstreamLowerAlertPressure = -1000
+            chamberPressureUpperLimit = 400
+
+            if ((values["PT-00"] > upstreamUpperAlertPressure) or (values["PT-00"] < upstreamLowerAlertPressure)
+                    or (values["PT-01"] > upstreamUpperAlertPressure) or (values["PT-01"] < upstreamLowerAlertPressure)
+                    or (values["PT-02"] > downstreamUpperAlertPressure) or (values["PT-02"] < downstreamLowerAlertPressure)
+                    or (values["PT-03"] > downstreamUpperAlertPressure) or (values["PT-03"] < downstreamLowerAlertPressure)
+                    or (values["PT-04"] > chamberPressureUpperLimit)
+                    ):
 
                 self.PressureAlarm.setCurrentWidget(self.Alarm)
                 self.PressureAlarm.show()
@@ -415,7 +452,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.PressureAlarm.setCurrentWidget(self.Normal)
                 self.PressureAlarm.show()
 
-            if self.PressureAlarm.currentWidget() == self.Normal and not (self.ESTOP.isChecked() or self.KillIgnitor.isChecked()):
+            if self.ESTOP.isChecked() or self.KillIgnitor.isChecked():
                 self.TestStatus.setCurrentWidget(self.GO)
                 self.TestStatus.show()
                 self.StartTest.setEnabled(True)
@@ -425,11 +462,50 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.TestStatus.show()
                 self.StartTest.setEnabled(False)
 
+            # abort
+            if self.testTimer.isActive():
+                # CH4
+                # total duration - remaining time = time since start
+                if ((self.testDuration - self.testTimer.remainingTime()/1000) > self.CH4Delay + .1)  and (not values["CH4FlowChoked"]):
+                    self.CH4AbortCounter += 1
+                    if self.CH4AbortCounter >= 10: #TODO tune this number
+                        print("CH4 Abort!!")
+                        self.ESTOP.setChecked(True)
+                        self.eStop(True)
+
+                else:
+                    self.CH4AbortCounter = 0
+
+                #GOX
+                if ((self.testDuration - self.testTimer.remainingTime()/1000) > self.GOXDelay + .1)  and (not values["GOXFlowChoked"]):
+                    self.GOXAbortCounter += 1
+                    if self.GOXAbortCounter >= 10: #TODO tune this number
+                        print("GOX Abort!!")
+                        self.ESTOP.setChecked(True)
+                        self.eStop(True)
+
+                else:
+                    self.CH4AbortCounter = 0
+
+                # pressure
+                if self.PressureAlarm.currentWidget() == self.Alarm:
+                    self.pressureAbortCounter += 1
+                    if self.pressureAbortCounter >= 10: #TODO tune number
+                        print("Pressure Abort!!")
+                        self.ESTOP.setChecked(True)
+                        self.eStop(True)
+                else:
+                    self.pressureAbortCounter = 0
+
+
+
             #Graphs
             # Add new value to the right of the deque (automatically pushes old ones out)
             self.GraphWindow.ChamberPressureGraph.updateGraph(values["PT-04"])
             self.GraphWindow.GOXMassFlowRateGraph.updateGraph(values["GOXMassFlowRate"])
             self.GraphWindow.CH4MassFlowRateGraph.updateGraph(values["CH4MassFlowRate"])
+
+
 
         except Exception as e:
             print(f"LabJack Error: {e}")

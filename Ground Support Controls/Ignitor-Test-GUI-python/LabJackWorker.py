@@ -29,7 +29,7 @@ class LabJackWorker(QtCore.QObject):
             "AIN1", #ch4 up
             "AIN2", #ox down
             "AIN3", #ch4 down
-            "AIN4", #chamber
+            "AIN120", #chamber
             "AIN48", # ox
             "AIN49", # ch4
 
@@ -70,8 +70,8 @@ class LabJackWorker(QtCore.QObject):
                 PT_03 = scale_value(results[3], 0, 5, 0, 1000)
                 PT_04 = scale_value(results[4], 0, 5, 0, 870)
 
-                TC_15 = scale_value(results[5], 0, 10, -150, 1370)
-                TC_16 = scale_value(results[6], 0, 10, -150, 1370)
+                TC_15 = scale_value(results[5], 0, 10, -150, 1350)
+                TC_16 = scale_value(results[6], 0, 10, -150, 1350)
 
                 output = {
                     "PT-00": PT_00,
@@ -101,7 +101,7 @@ class LabJackWorker(QtCore.QObject):
                 self.labjack_signals.emit(output)
 
                 # 3. Frequency of reading (e.g., 10Hz = 0.1)
-                time.sleep(0.004)
+                time.sleep(0.004) #250 Hz
         except Exception as e:
             self.error_occurred.emit(str(e))
             raise e
@@ -196,41 +196,40 @@ def scale_value(voltage, min_in, max_in, min_out, max_out):
 
 
 def calculate_flow(P1_psi, P2_psi, T1_C, gas_type='O2'):
+    import math
 
-    c_d = 0.8 #TODO confirm
-
-    A = -1
-    y = -1
-    R = -1
-    rho = -1
-
+    c_d = 0.8
     T = T1_C + 273.15
 
     if gas_type == 'O2':
         y = 1.4
-        A = 5.29*10**-7 # m^2
-        R = 259.8 # kg / (m*s^2)
-        rho = 1.429 # kg / m**3
+        A = 5.29e-7
+        R = 259.8
+        rho = 1.429
     elif gas_type == 'CH4':
         y = 1.3
-        A = 3.82*10*-7 # m^2
-        R = 519.6 # kg / (m*s^2)
-        rho = 0.717  # kg / m**3
+        A = 3.82e-7  # fixed typo
+        R = 519.6
+        rho = 0.717
+    else:
+        raise ValueError(f"Unsupported gas type: {gas_type}")
 
-    if P1_psi < P2_psi: #back flow
+    if P1_psi < P2_psi:
         return -1, False
 
-    #source https://en.wikipedia.org/wiki/Choked_flow
-    p_critical = P1_psi*(2/(y+1))**(y/(y-1))
+    P1 = P1_psi * 6894.76
+    P2 = P2_psi * 6894.76
 
-    choked = P2_psi <= p_critical
+    p_critical = P1 * (2 / (y + 1)) ** (y / (y - 1))
+    choked = P2 <= p_critical
 
     if choked:
-        #for choked flow
-        m_dot = c_d * A * P1_psi * math.sqrt(y/(R*T))*math.pow(2/(y+1),(y+1)/(2*(y-1)))
-
+        m_dot = (c_d * A * P1
+                 * math.sqrt(y / (R * T))
+                 * (2 / (y + 1)) ** ((y + 1) / (2 * (y - 1))))
     else:
-        m_dot = rho * c_d * A * math.sqrt((2 * (P1_psi-P2_psi))/rho)
+        rho_actual = (P1 / 101325) * rho
+        m_dot = c_d * A * math.sqrt(2 * rho_actual * (P1 - P2))
 
-    return m_dot, choked
+    return round(m_dot, 4), choked
 
