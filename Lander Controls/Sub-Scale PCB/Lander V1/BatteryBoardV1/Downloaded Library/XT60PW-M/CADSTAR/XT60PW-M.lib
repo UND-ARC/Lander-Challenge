@@ -1,0 +1,16 @@
+.XT60PW-M :1 ;Connector: DC supply; socket; XT60; male; PIN: 2; on PCBs; THT; 30A
+XT60PWM
+*STM J
+*NGS
+*PLB 1="1" 2="2" 3="MH1" 4="MH2"
+*MXP 4
+*DFN XT60PW-M
+~!TME Electronic Components Part Number (-)
+~!TME Electronic Components Price/Stock (-)
+~!Manufacturer_Name (Amass)
+~!Manufacturer_Part_Number (XT60PW-M)
+~!Link Datasheet (https://www.tme.eu/Document/b13629717d44ae038681dba08d18c0b6/XT60PW-M.pdf)
+~!Height (8.4mm)
+~!3D_Model (XT60PW-M)
+XT60PW-M
+1.1!U 2.1!U 3.1!U 4.1!U 

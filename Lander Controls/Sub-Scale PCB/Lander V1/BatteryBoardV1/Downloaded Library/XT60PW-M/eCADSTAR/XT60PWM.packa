@@ -1,0 +1,13 @@
+(unit MM)
+
+(package "XT60PW-M"
+    (type UNDEF)
+    (uver 2)
+    (cuser "SamacSys")
+    (uuser "SamacSys")
+    (utime 2025-03-24-09:37:27)
+    (mountForm default
+        (footprintRef "XT60PWM")
+        (spec "System")
+    )
+)

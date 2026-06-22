@@ -1,0 +1,9 @@
+Manufacturer=Amass
+PartNumber=XT60PW-M
+PartCategory=Connector
+PackageCategory=Other
+PinCount=4
+Version=1.7
+Released=2025-03-24 09:37:27
+Downloaded=2025-11-15 21:55:48
+3D=Y
