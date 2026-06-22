@@ -1,53 +1,101 @@
-import time
 import board
 import busio
 from digitalio import DigitalInOut
 import adafruit_rfm9x
-import subprocess
-import os
-import signal
+import sys
+import time
+from digitalio import Direction
 
-# Hardware Settings
-RADIO_FREQ_MHZ = 915.3
+from LanderMain import LanderMain
+
+# Standard Startup Hardware Init
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
+
+# Try to lock the bus manually to see if it's alive
+if spi.try_lock():
+    print("SPI Bus is working and locked!")
+    spi.configure(baudrate=5000000) # 5MHz
+    spi.unlock()
+else:
+    print("SPI Bus is BUSY or LOCKED by another process!")
+
 cs = DigitalInOut(board.CE0)
 reset = DigitalInOut(board.D25)
-rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, RADIO_FREQ_MHZ)
+rfm9x = adafruit_rfm9x.RFM9x(spi, cs, reset, 915)
 
-main_process = None  # Variable to store the running program
+# Force the radio to wake up and calibrate its RSSI circuit
+rfm9x.idle()
+time.sleep(0.1)
+rfm9x.listen() # This is the command that actually turns on the 'ears'
 
-print("Lander Manager: Listening for commands...")
+# Force LNA to Max Gain (G1) and High Frequency Mode
+# RegLna (0x0C) -> 0x23 (Max gain, default boost)
+rfm9x._write_u8(0x0C, 0x23)
 
-while True:
-    packet = rfm9x.receive(timeout=1.0)
+# RegOpMode (0x01) -> Force Bit 3 (LowFrequencyModeOn) to 0
+current_mode = rfm9x._read_u8(0x01)
+rfm9x._write_u8(0x01, current_mode & 0xF7)
+print(f"HF Mode Forced. New OpMode: {rfm9x._read_u8(0x01)}")
+
+print(f"LNA Forced to: {rfm9x._read_u8(0x0C)}")
+print(f"Radio Mode: {rfm9x.operation_mode}") # Should NOT be 0 (Sleep)
+
+
+reset.direction = Direction.OUTPUT
+reset.value = False
+time.sleep(0.01)
+reset.value = True
+time.sleep(0.01)
+
+rfm9x.invert_iq = False
+rfm9x.spreading_factor = 7
+rfm9x.signal_bandwidth = 125000
+rfm9x.coding_rate = 5  # This represents 4/5 in many LoRa libraries
+rfm9x.low_data_rate_optimize = False # Match this to your GRC 'Off' setting
+rfm9x.sync_word = 0x12 # Match your GRC '18' setting
+rfm9x.enable_crc = False
+
+lastRssi = 10000000.0 #starting value out of normal range
+
+rfm9x.spreading_factor = 9 # Change from 7 to 9 to force a re-calculation
+time.sleep(0.1)
+rfm9x.spreading_factor = 7
+
+print(f"Chip Version: {rfm9x._read_u8(0x42)}")
+
+print("Pi Booted. Waiting for STARTMAIN signal from Pluto+...")
+started = False
+while not started:
+    #print("Heartbeat...")
+    packet = rfm9x.receive(timeout=0.5)
+    rssi = rfm9x.last_rssi
+    snr = rfm9x.last_snr
+    #if abs(lastRssi - rssi) > 1:
+    print(f"Noise Floor: {rssi} dBm | SNR: {snr}")
+    raw_rssi = rfm9x._read_u8(0x1B)
+    print(f"Raw Reg 0x1B: {raw_rssi}")
+    lastRssi = rssi
 
     if packet is not None:
+
+        print("Packet Received!")
+        # Convert bytes to string and strip whitespace/nulls
+        print(f"Packet raw: , {packet}")
+        packet_text = str(packet, "utf-8").strip()
+        print(f"Decoded: [{packet_text}]")
         try:
-            message = str(packet, "utf-8").strip()
-            print(f"Received Command: {message}")
-
-            # --- START LOGIC ---
-            if message == "START_MISSION":
-                if main_process is None or main_process.poll() is not None:
-                    print("Launching Lander-Challenge Main Program...")
-                    # Update this path to your actual main script
-                    main_process = subprocess.Popen(["/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/venv/bin/python3", "/home/ARC/Github ARC/Lander-Challenge/Electronics and Design/Main/LanderMain.py"])
-                else:
-                    print("Mission already running.")
-
-            # --- END LOGIC ---
-            elif message == "END_MISSION":
-                if main_process and main_process.poll() is None:
-                    print("Stopping Mission...")
-                    # Send SIGTERM to stop the process gracefully
-                    main_process.terminate()
-                    main_process.wait()  # Wait for it to actually close
-                    main_process = None
-                    print("Mission stopped successfully.")
-                else:
-                    print("No active mission to stop.")
+            if packet_text == "STARTMAIN":
+                print("Signal Received. ")
+                started = True
+                break
 
         except Exception as e:
-            print(f"Command Error: {e}")
+            print(e)
+            pass
 
-    time.sleep(0.1)
+print("Launching Main Program.")
+lander = LanderMain(spi, cs, reset, rfm9x)
+lander.runMainLoop()
+print("Main Program finished!")
+
+sys.exit(0)

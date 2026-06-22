@@ -1,14 +1,10 @@
 import sys, os
-# MUST happen before importing pyqtgraph
-os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt6'
-import pyqtgraph as pg
 from PyQt6 import QtCore, QtWidgets
-from collections import deque
 from LabJackWorker import LabJackWorker
 #from PyQt6 import uic
 from MainWindow import Ui_MainWindow
 from GraphWindow import GraphWindow
-import math
+import math, time
 
 
 
@@ -27,19 +23,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.worker = LabJackWorker()
         self.worker.moveToThread(self.thread)
+        time.sleep(3)
 
         self.GraphWindow = GraphWindow()
         self.actionGraphWindow.triggered.connect(self.toggle_dashboard)
 
         # Connect signals
         self.thread.started.connect(self.worker.run)
-        #self.worker.voltage_received.connect(self.update_lcd)
         self.worker.error_occurred.connect(self.handle_error)
         self.worker.labjack_signals.connect(self.displayLabjackValues)
 
-
-
         self.thread.start()
+        #time.sleep(5)
 
         # Initialize the timers
         self.testTimerProgressBar = QtCore.QTimer()
@@ -49,8 +44,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.testTimer.timeout.connect(self.endTest)
 
 
+
         self.testTimerCH4Delay = QtCore.QTimer()
         self.testTimerCH4Delay.timeout.connect(self.CH4DelayTimeout)
+
+        self.testTimerGOXDelay = QtCore.QTimer()
+        self.testTimerGOXDelay.timeout.connect(self.GOXDelayTimeout)
+
+        self.testTimerPurgeTime = QtCore.QTimer()
+        self.testTimerPurgeTime.timeout.connect(self.PurgeTimeout)
 
         self.testTimerSparkDelay = QtCore.QTimer()
         self.testTimerSparkDelay.timeout.connect(self.sparkDelayTimeout)
@@ -59,25 +61,34 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.sparkTimer.timeout.connect(self.toggleSparkRelay)
         self.sparkRelayOn = False
 
+        self.purgeTimer = QtCore.QTimer()
+        self.purgeTimer.timeout.connect(self.closeBothNitrogenValves)
+        self.purgeTimer.setSingleShot(True)
+
         # Track our current position
         self.current_step = 0
         self.total_steps = 0
 
-        # Connect the button
+        # Connect the buttons
         self.StartTest.clicked.connect(self.start_test)
 
-        self.NitrogenPurge.clicked.connect(self.nitrogenPurgeClicked)
 
-        self.manualValveControl(False)
-        self.ManualValveControl.clicked.connect(self.manualValveControl)
+        self.ManOverride.clicked.connect(self.manOverride)
+        self.manOverride(False)
+        self.ManSpark.clicked.connect(self.manSpark)
+        self.manSpark(False)
+        self.ManPurgeBoth.clicked.connect(self.manPurgeBoth)
+        self.manPurgeBoth(False)
+        self.ManPurgeGOX.clicked.connect(self.manPurgeGOX)
+        self.manPurgeGOX(False)
+        self.ManPurgeCH4.clicked.connect(self.manPurgeCH4)
+        self.manPurgeCH4(False)
+        self.ManGOXValve.clicked.connect(self.manGOXValve)
+        self.manGOXValve(False)
+        self.ManCH4Valve.clicked.connect(self.manCH4Valve)
+        self.manCH4Valve(False)
 
-        self.GOX_Valve.clicked.connect(self.manualGOXControl)
-        self.CH4_Valve.clicked.connect(self.manualCH4Control)
 
-        self.manualIgnitionControl(False)
-        self.ManualIgitionControl.clicked.connect(self.manualIgnitionControl)
-
-        self.Ignitor.clicked.connect(self.manualSparkControl)
 
         self.setLoggingEnabled(False)
         self.DataLogging.clicked.connect(self.setLoggingEnabled)
@@ -85,26 +96,33 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.ESTOP.clicked.connect(self.eStop)
         self.KillIgnitor.clicked.connect(self.killIgnitor)
 
-        # start all valves closed
-        self.closeCH4Valve()
-        self.closeGOXValve()
-        self.stopFireSparkPlug()
-        self.closeNitrogenValve()
+        self.labjackValues = {}
+
+        self.testDuration = 0
+        self.CH4Delay = 0
+        self.GOXDelay = 0
+        self.SparkDelay = 0
+
+        # abort
+        self.CH4AbortCounter = 0
+        self.GOXAbortCounter = 0
+        self.pressureAbortCounter = 0
+
 
 
     def start_test(self):
         #progress bar
         # 1. Get duration in seconds from spinbox
-        duration = self.FiringDurationSeconds.value()
+        self.testDuration = self.FiringDurationSeconds.value()
 
-        if duration <= 0:
+        if self.testDuration <= 0:
             return
 
         # 2. Set up the progress tracking
         # We will update every 100ms for a smooth look
         # Total steps = duration * 10 (since 10 * 100ms = 1 second)
         self.current_step = 0
-        self.total_steps = duration * 10
+        self.total_steps = self.testDuration * 10
 
         self.TestProgress.setMaximum(int(self.total_steps))
         self.TestProgress.setValue(0)
@@ -115,21 +133,38 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # 4. Start the timer (100ms interval)
         self.testTimerProgressBar.start(100)
 
-        self.testTimer.start(int(duration * 1000))
+        self.testTimer.start(int(self.testDuration * 1000))
         print("Starting Test!")
+        self.worker.write_value("FIO4", 1) #green light on
 
-        #GOX no delay
-        self.openGOXValve()
+        #abort reset
+        self.CH4AbortCounter = 0
+        self.GOXAbortCounter = 0
+        self.pressureAbortCounter = 0
 
         #CH4
-        CH4Delay = self.CH4DelaySeconds.value()
+        self.CH4Delay = self.CH4DelaySeconds.value()
 
-        self.testTimerCH4Delay.start(int(CH4Delay*1000))
+        if self.CH4Delay <= 0:
+            self.openCH4Valve()
+        else:
+            self.testTimerCH4Delay.start(int(self.CH4Delay*1000))
+
+        #GOX
+        self.GOXDelay = self.GOXDelaySeconds.value()
+
+        if self.GOXDelay <= 0:
+            self.openGOXValve()
+        else:
+            self.testTimerGOXDelay.start(int(self.GOXDelay * 1000))
 
         #Spark
-        sparkDelay = self.SparkDelaySeconds.value() + CH4Delay
+        self.sparkDelay = self.SparkDelaySeconds.value()
 
-        self.testTimerSparkDelay.start(int(sparkDelay*1000))
+        if self.sparkDelay <= 0:
+            self.startFireSparkPlug()
+        else:
+            self.testTimerSparkDelay.start(int(self.sparkDelay*1000))
 
 
 
@@ -146,9 +181,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.testTimerProgressBar.stop()
             #self.TestProgress.setValue(0)
 
+
     def CH4DelayTimeout(self):
         self.testTimerCH4Delay.stop()
         self.openCH4Valve()
+
+    def GOXDelayTimeout(self):
+        self.testTimerGOXDelay.stop()
+        self.openGOXValve()
 
     def sparkDelayTimeout(self):
         self.testTimerSparkDelay.stop()
@@ -162,29 +202,69 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.closeGOXValve()
         self.stopFireSparkPlug()
 
-    def manualValveControl(self, checked):
+        self.openBothNitrogenValves()
+
+        purgeTime = 1 #sec
+
+        self.testTimerPurgeTime.start(int(purgeTime * 1000))
+
+
+
+    def PurgeTimeout(self):
+        self.closeBothNitrogenValves()
+
+        # green light off
+        self.worker.write_value("FIO4", 0)
+
+    def manOverride(self, checked):
         if checked:
-            self.ManualValveControl.setText("Manual")
-            self.NitrogenPurge.setEnabled(True)
-            self.GOX_Valve.setEnabled(True)
-            self.CH4_Valve.setEnabled(True)
+            self.ManSpark.setEnabled(True)
+            self.ManPurgeBoth.setEnabled(True)
+            self.ManPurgeGOX.setEnabled(True)
+            self.ManPurgeCH4.setEnabled(True)
+            self.ManGOXValve.setEnabled(True)
+            self.ManCH4Valve.setEnabled(True)
 
         else:
-            self.ManualValveControl.setText("AUTO")
-            self.NitrogenPurge.setEnabled(False)
-            self.GOX_Valve.setEnabled(False)
-            self.CH4_Valve.setEnabled(False)
+            self.ManSpark.setEnabled(False)
+            self.ManPurgeBoth.setEnabled(False)
+            self.ManPurgeGOX.setEnabled(False)
+            self.ManPurgeCH4.setEnabled(False)
+            self.ManGOXValve.setEnabled(False)
+            self.ManCH4Valve.setEnabled(False)
 
-    def manualIgnitionControl(self, checked):
+    def manSpark(self, checked):
         if checked:
-            self.ManualIgitionControl.setText("Manual")
-            self.Ignitor.setEnabled(True)
+            self.startFireSparkPlug()
 
         else:
-            self.ManualIgitionControl.setText("AUTO")
-            self.Ignitor.setEnabled(False)
+            self.stopFireSparkPlug()
 
-    def manualCH4Control(self, checked):
+    def manPurgeBoth(self, checked):
+        if checked:
+            self.openBothNitrogenValves()
+        else:
+            self.closeBothNitrogenValves()
+
+    def manPurgeGOX(self, checked):
+        if checked:
+            self.openNitrogenValveGOX()
+        else:
+            self.closeNitrogenValveGOX()
+
+    def manPurgeCH4(self, checked):
+        if checked:
+            self.openNitrogenValveCH4()
+        else:
+            self.closeNitrogenValveCH4()
+
+    def manGOXValve(self, checked):
+        if checked:
+            self.openGOXValve()
+        else:
+            self.closeGOXValve()
+
+    def manCH4Valve(self, checked):
         if checked:
             self.openCH4Valve()
 
@@ -192,33 +272,28 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.closeCH4Valve()
 
 
-    def manualGOXControl(self, checked):
-        if checked:
-            self.openGOXValve()
-        else:
-            self.closeGOXValve()
-
-
-    def manualSparkControl(self, checked):
-        if checked:
-            self.startFireSparkPlug()
-
-        else:
-            self.stopFireSparkPlug()
-
     def eStop(self, checked):
         if checked:
             print("Emergency Stop!")
             self.closeCH4Valve()
             self.closeGOXValve()
             self.stopFireSparkPlug()
-            #TODO do we want the nitrogen to open after a estop?
-            # self.openNitrogenValve()
+            self.openBothNitrogenValves()
+            self.worker.write_value("FIO5", 1) #red light
+
+        if not checked and not self.KillIgnitor.isChecked():
+            self.worker.write_value("FIO5", 0)  # red light
 
     def killIgnitor(self, checked):
         if checked:
             print("Killing Ignitor!")
             self.stopFireSparkPlug()
+            self.worker.write_value("FIO5", 1)  # red light
+
+        if not checked and not self.ESTOP.isChecked():
+            self.worker.write_value("FIO5", 0)
+
+
 
 
 
@@ -235,85 +310,207 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.ESTOP.isChecked():
             return #if estop is on we don't want fire
         print("Opening GOX Valve!")
-        self.GOX_Valve.setText("OPEN")
-        self.GOXValveIndicator.setCurrentWidget(self.GOX_Open)
-        self.GOXValveIndicator.show()
-        self.worker.write_value("FIO7", 1)
+        self.ManGOXValve.setText("OPEN")
+        self.ManGOXValve.setStyleSheet("background-color: #2ecc71; color: black; font-weight: bold;") #green
+        self.worker.write_value("FIO2", 1)
 
     def closeGOXValve(self):
         print("Closing GOX Valve!")
-        self.GOX_Valve.setText("CLOSE")
-        self.GOXValveIndicator.setCurrentWidget(self.GOX_Closed)
-        self.GOXValveIndicator.show()
-        self.worker.write_value("FIO7", 0)
+        self.ManGOXValve.setText("CLOSE")
+        self.ManGOXValve.setStyleSheet("background-color: red; color: white; border-radius: 5px;")
+        self.worker.write_value("FIO2", 0)
 
     def openCH4Valve(self):
         if self.ESTOP.isChecked():
             return  # if estop is on we don't want fire
         print("Opening CH4 Valve!")
-        self.CH4_Valve.setText("OPEN")
-        self.CH4ValveIndicator.setCurrentWidget(self.CH4_Open)
-        self.CH4ValveIndicator.show()
-        self.worker.write_value("FIO6", 1)
+        self.ManCH4Valve.setText("OPEN")
+        self.ManCH4Valve.setStyleSheet("background-color: #2ecc71; color: black; font-weight: bold;") #green
+        self.worker.write_value("FIO3", 1)
 
     def closeCH4Valve(self):
         print("Closing CH4 Valve!")
-        self.CH4_Valve.setText("CLOSE")
-        self.CH4ValveIndicator.setCurrentWidget(self.CH4_Closed)
-        self.CH4ValveIndicator.show()
+        self.ManCH4Valve.setText("CLOSE")
+        self.ManCH4Valve.setStyleSheet("background-color: red; color: white; border-radius: 5px;")
+        self.worker.write_value("FIO3", 0)
+
+    def openBothNitrogenValves(self):
+        print("Opening Both Nitrogen Valves!")
+        self.ManPurgeBoth.setText("OPEN")
+        self.ManPurgeBoth.setStyleSheet("background-color: #2ecc71; color: black; font-weight: bold;") #green
+        self.openNitrogenValveGOX()
+        self.openNitrogenValveCH4()
+
+        self.purgeTimer.start(15*1000) # 15 seconds
+
+    def closeBothNitrogenValves(self):
+        print("Closing Both Nitrogen Valves!")
+        self.ManPurgeBoth.setText("CLOSED")
+        self.ManPurgeBoth.setStyleSheet("background-color: red; color: white; border-radius: 5px;")
+        self.closeNitrogenValveGOX()
+        self.closeNitrogenValveCH4()
+
+    def openNitrogenValveGOX(self):
+        print("Opening Nitrogen Valve GOX!")
+        self.ManPurgeGOX.setText("OPEN")
+        self.ManPurgeGOX.setStyleSheet("background-color: #2ecc71; color: black; font-weight: bold;")  # green
+        self.worker.write_value("FIO0", 1)
+
+
+    def closeNitrogenValveGOX(self):
+        print("Closing Nitrogen Valve GOX!")
+        self.ManPurgeGOX.setText("CLOSE")
+        self.ManPurgeGOX.setStyleSheet("background-color: red; color: white; border-radius: 5px;")
+        self.worker.write_value("FIO0", 0)
+
+    def openNitrogenValveCH4(self):
+        print("Opening Nitrogen Valve Ch4!")
+        self.ManPurgeCH4.setText("OPEN")
+        self.ManPurgeCH4.setStyleSheet("background-color: #2ecc71; color: black; font-weight: bold;")  # green
+        self.worker.write_value("FIO1", 1)
+
+
+    def closeNitrogenValveCH4(self):
+        print("Closing Nitrogen Valve CH4!")
+        self.ManPurgeCH4.setText("CLOSE")
+        self.ManPurgeCH4.setStyleSheet("background-color: red; color: white; border-radius: 5px;")
+        self.worker.write_value("FIO1", 0)
+
+
+    def startFireSparkPlug(self):
+        if self.ESTOP.isChecked() or self.KillIgnitor.isChecked():
+            return #if estop is on we don't want fire
+        print("Start Fire Spark Plug!")
+        self.ManSpark.setText("ON")
+        self.ManSpark.setStyleSheet("background-color: #2ecc71; color: black; font-weight: bold;")  # green
+        self.worker.write_value("FIO6", 1)
+        self.sparkTimer.start(143)
+
+
+    def stopFireSparkPlug(self):
+        print("Stopped Fire Spark Plug!")
+        self.ManSpark.setText("OFF")
+        self.ManSpark.setStyleSheet("background-color: red; color: white; border-radius: 5px;")
+
+        self.sparkTimer.stop()
         self.worker.write_value("FIO6", 0)
+        self.worker.write_value("FIO7", 0)
+
+    def toggleSparkRelay(self):
+        self.sparkRelayOn = not self.sparkRelayOn
+
+        if self.sparkRelayOn:
+            self.worker.write_value("FIO7", 1)
+        else:
+            self.worker.write_value("FIO7", 0)
 
     def displayLabjackValues(self, values):
-        # Format to 2 decimal place
-        self.TC_01.setText(f'{values["CH4Temp"]:.2f} °C')
-        self.TC_02.setText(f'{values["GOXTemp"]:.2f} °C')
-        self.PT_01.setText(f'{values["PT-01"]:.2f} psi')
-        self.PT_02.setText(f'{values["PT-02"]:.2f} psi')
-        self.PT_03.setText(f'{values["PT-03"]:.2f} psi')
-        self.PT_04.setText(f'{values["PT-04"]:.2f} psi')
-        self.PT_05.setText(f'{values["PT-05"]:.2f} psi')
-        self.PT_06.setText(f'{values["PT-06"]:.2f} psi')
-        self.PT_07.setText(f'{values["PT-07"]:.2f} psi')
+        try:
+            self.labjackValues = values
+            # Format to 2 decimal place
+            self.PT_00.setText(f'{values["PT-00"]:.2f} psi')
+            self.PT_01.setText(f'{values["PT-01"]:.2f} psi')
+            self.PT_02.setText(f'{values["PT-02"]:.2f} psi')
+            self.PT_03.setText(f'{values["PT-03"]:.2f} psi')
+            self.PT_04.setText(f'{values["PT-04"]:.2f} psi')
+
+            self.TC_15.setText(f'{values["TC-15"]:.2f} °C')
+            self.TC_16.setText(f'{values["TC-16"]:.2f} °C')
 
 
-        #TODO set Cd
-        GOXMassFlowRate, GOXFlowRegime = calculate_mass_flow_real(values["PT_01"], values["PT_03"], values["GOXTemp"], 25, 'Oxygen', 0.62)
 
-        self.GOXMassRate.setText(f'{GOXMassFlowRate:.2f} km/h')
-        if GOXFlowRegime == "Choked":
-            self.GOXMassRate.setStyleSheet("background-color: blue; color: white;")
-        else:
-            self.GOXMassRate.setStyleSheet("background-color: yellow; color: black;")
+            self.MdotGOX.setText(f'{values["GOXMassFlowRate"]:.4f} kg/s')
+            if values["GOXFlowChoked"]:
+                self.MdotGOX.setStyleSheet("background-color: blue; color: white;")
+            else:
+                self.MdotGOX.setStyleSheet("background-color: yellow; color: black;")
 
-        CH4MassFlowRate, CH4FlowRegime = calculate_mass_flow_real(values["PT_01"], values["PT_03"], values["GOXTemp"], 25, 'Methane', 0.62)
 
-        self.CH4MassRate.setText(f'{CH4MassFlowRate:.2f} km/h')
-        if CH4FlowRegime == "Choked":
-            self.CH4MassRate.setStyleSheet("background-color: blue; color: white;")
-        else:
-            self.CH4MassRate.setStyleSheet("background-color: yellow; color: black;")
 
-        if (values["PT-03"] > self.UpperO2.value()) or (values["PT-03"] < self.LowerO2.value()) or (values["PT-04"] > self.UpperO2.value()) or (values["PT-04"] < self.LowerO2.value()):
-            self.PressureAlarm.setCurrentWidget(self.Alarm)
-            self.PressureAlarm.show()
-        else:
-            self.PressureAlarm.setCurrentWidget(self.Normal)
-            self.PressureAlarm.show()
+            self.MdotCH4.setText(f'{values["CH4MassFlowRate"]:.4f} kg/s')
+            if values["CH4FlowChoked"]:
+                self.MdotCH4.setStyleSheet("background-color: blue; color: white;")
+            else:
+                self.MdotCH4.setStyleSheet("background-color: yellow; color: black;")
 
-        if self.PressureAlarm.currentWidget() == self.Normal and not (self.ESTOP.isChecked() or self.KillIgnitor.isChecked()):
-            self.TestStatus.setCurrentWidget(self.GO)
-            self.TestStatus.show()
-            self.StartTest.setEnabled(True)
-        else:
-            self.TestStatus.setCurrentWidget(self.NOGO)
-            self.TestStatus.show()
-            self.StartTest.setEnabled(False)
+            upstreamUpperAlertPressure = 1000 #TODO tune
+            upstreamLowerAlertPressure = -1000
+            downstreamUpperAlertPressure = 420
+            downstreamLowerAlertPressure = -1000
+            chamberPressureUpperLimit = 400
 
-        #Graphs
-        # Add new value to the right of the deque (automatically pushes old ones out)
-        self.GraphWindow.ChamberPressureGraph.updateGraph(values["PT-05"])
-        self.GraphWindow.GOXMassFlowRateGraph.updateGraph(GOXMassFlowRate)
-        self.GraphWindow.CH4MassFlowRateGraph.updateGraph(CH4MassFlowRate)
+            if ((values["PT-00"] > upstreamUpperAlertPressure) or (values["PT-00"] < upstreamLowerAlertPressure)
+                    or (values["PT-01"] > upstreamUpperAlertPressure) or (values["PT-01"] < upstreamLowerAlertPressure)
+                    or (values["PT-02"] > downstreamUpperAlertPressure) or (values["PT-02"] < downstreamLowerAlertPressure)
+                    or (values["PT-03"] > downstreamUpperAlertPressure) or (values["PT-03"] < downstreamLowerAlertPressure)
+                    or (values["PT-04"] > chamberPressureUpperLimit)
+                    ):
+
+                self.PressureAlarm.setCurrentWidget(self.Alarm)
+                self.PressureAlarm.show()
+            else:
+                self.PressureAlarm.setCurrentWidget(self.Normal)
+                self.PressureAlarm.show()
+
+            if self.ESTOP.isChecked() or self.KillIgnitor.isChecked():
+                self.TestStatus.setCurrentWidget(self.GO)
+                self.TestStatus.show()
+                self.StartTest.setEnabled(True)
+
+            else:
+                self.TestStatus.setCurrentWidget(self.NOGO)
+                self.TestStatus.show()
+                self.StartTest.setEnabled(False)
+
+            # abort
+            if self.testTimer.isActive():
+                # CH4
+                # total duration - remaining time = time since start
+                if ((self.testDuration - self.testTimer.remainingTime()/1000) > self.CH4Delay + .1)  and (not values["CH4FlowChoked"]):
+                    self.CH4AbortCounter += 1
+                    if self.CH4AbortCounter >= 10: #TODO tune this number
+                        print("CH4 Abort!!")
+                        self.ESTOP.setChecked(True)
+                        self.eStop(True)
+
+                else:
+                    self.CH4AbortCounter = 0
+
+                #GOX
+                if ((self.testDuration - self.testTimer.remainingTime()/1000) > self.GOXDelay + .1)  and (not values["GOXFlowChoked"]):
+                    self.GOXAbortCounter += 1
+                    if self.GOXAbortCounter >= 10: #TODO tune this number
+                        print("GOX Abort!!")
+                        self.ESTOP.setChecked(True)
+                        self.eStop(True)
+
+                else:
+                    self.CH4AbortCounter = 0
+
+                # pressure
+                if self.PressureAlarm.currentWidget() == self.Alarm:
+                    self.pressureAbortCounter += 1
+                    if self.pressureAbortCounter >= 10: #TODO tune number
+                        print("Pressure Abort!!")
+                        self.ESTOP.setChecked(True)
+                        self.eStop(True)
+                else:
+                    self.pressureAbortCounter = 0
+
+
+
+            #Graphs
+            # Add new value to the right of the deque (automatically pushes old ones out)
+            self.GraphWindow.ChamberPressureGraph.updateGraph(values["PT-04"])
+            self.GraphWindow.GOXMassFlowRateGraph.updateGraph(values["GOXMassFlowRate"])
+            self.GraphWindow.CH4MassFlowRateGraph.updateGraph(values["CH4MassFlowRate"])
+
+
+
+        except Exception as e:
+            print(f"LabJack Error: {e}")
+            raise e
+
 
     def toggle_dashboard(self):
         if self.GraphWindow.isVisible():
@@ -323,50 +520,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.GraphWindow.show()
 
 
-    def nitrogenPurgeClicked(self, checked):
-        if checked:
-            self.NitrogenPurge.setText("ON")
-            self.openNitrogenValve()
-        else:
-            self.NitrogenPurge.setText("OFF")
-            self.closeNitrogenValve()
 
-    def openNitrogenValve(self):
-        print("Opening Nitrogen Valve!")
-        self.worker.write_value("FIO4", 1)
-
-
-    def closeNitrogenValve(self):
-        print("Closing Nitrogen Valve!")
-        self.worker.write_value("FIO4", 0)
-
-
-    def startFireSparkPlug(self):
-        if self.ESTOP.isChecked() or self.KillIgnitor.isChecked():
-            return #if estop is on we don't want fire
-        print("Start Fire Spark Plug!")
-        self.Ignitor.setText("ON")
-        self.IgnitorIndicator.setCurrentWidget(self.Ignitor_On)
-        self.IgnitorIndicator.show()
-        self.worker.write_value("FIO4", 1)
-        self.sparkTimer.start(333)
-
-
-    def stopFireSparkPlug(self):
-        print("Stopped Fire Spark Plug!")
-        self.Ignitor.setText("OFF")
-        self.IgnitorIndicator.setCurrentWidget(self.Ignitor_Off)
-        self.IgnitorIndicator.show()
-
-        self.sparkTimer.stop()
-        self.worker.write_value("FIO0", 0)
-        self.worker.write_value("FIO4", 0)
-
-    def toggleSparkRelay(self):
-        if self.sparkRelayOn:
-            self.worker.write_value("FIO0", 0)
-        else:
-            self.worker.write_value("FIO0", 1)
 
 
     def handle_error(self, err_msg):
@@ -381,48 +535,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         event.accept()
 
 
-def calculate_flow(P1_psi, P2_psi, T1_C, Cv, gas_type='O2'):
-    """
-    Calculates mass flow rate using psi and Celsius inputs.
-    Based on manufacturer Cv equations converted to SI.
-    https://tameson.com/pages/cv-calculator
-    """
-    # 1. Unit Conversions to SI
-    # 1 psi = 6894.76 Pascals
-    p1 = P1_psi * 6894.76
-    p2 = P2_psi * 6894.76
-    # Celsius to Kelvin
-    t1 = T1_C + 273.15
-
-    # 2. Gas Properties at Standard Conditions (1 atm, 15°C)
-    # G: Specific Gravity (O2=1.1, CH4=0.55)
-    # rho_std: Density at standard conditions (kg/m^3)
-    gas_props = {
-        'O2':  {'G': 1.10, 'rho_std': 1.331},
-        'CH4': {'G': 0.55, 'rho_std': 0.668}
-    }
-
-    G = gas_props[gas_type]['G']
-    rho_std = gas_props[gas_type]['rho_std']
-
-    # 3. Determine Flow Regime (Subcritical vs Supercritical)
-    # Using the P1/2 threshold from your provided reference image
-    if p2 > (p1 / 2):
-        # SUBCRITICAL (Subsonic)
-        # Constant 0.000256 is the SI conversion for the '963' imperial constant
-        q_std = (Cv / 0.000256) * math.sqrt((p1**2 - p2**2) / (G * t1))
-        regime = "Subcritical"
-    else:
-        # SUPERCRITICAL (Choked)
-        # Constant 0.000432 is the SI conversion for the '816' imperial constant
-        q_std = (Cv * p1 / 0.000432) * math.sqrt(1 / (G * t1))
-        regime = "Supercritical (Choked)"
-
-    # 4. Final Mass Flow Calculation
-    # m_dot = Volumetric Flow at Std * Density at Std
-    m_dot = q_std * rho_std
-
-    return m_dot, regime
 
 
 

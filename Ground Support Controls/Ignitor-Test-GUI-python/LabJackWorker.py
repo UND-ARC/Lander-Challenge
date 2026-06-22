@@ -1,3 +1,4 @@
+import math
 import time
 import csv
 from datetime import datetime
@@ -6,13 +7,9 @@ from labjack import ljm
 
 class LabJackWorker(QtCore.QObject):
     # Signal to send the voltage to the UI
-    #voltage_received = QtCore.pyqtSignal(float)
+    # voltage_received = QtCore.pyqtSignal(float)
     labjack_signals = QtCore.pyqtSignal(dict)
     error_occurred = QtCore.pyqtSignal(str)
-
-    #AIN 0-5 pressures, 12-13 temps
-    channels_to_read = ["AIN0", "AIN1", "AIN2", "AIN3", "AIN4", "AIN5", "AIN6", "AIN12", "AIN13"]
-    num_channels = len(channels_to_read)
 
     def __init__(self):
         super().__init__()
@@ -27,9 +24,37 @@ class LabJackWorker(QtCore.QObject):
 
 
 
+        self.channels_to_read = [
+            "AIN0", #ox up
+            "AIN1", #ch4 up
+            "AIN2", #ox down
+            "AIN3", #ch4 down
+            "AIN120", #chamber
+            "AIN48", # ox
+            "AIN49", # ch4
+
+        ]
+
+        self.outputs = {
+            "FIO0": 0.0,
+            "FIO1": 0.0,
+            "FIO2": 0.0,
+            "FIO3": 0.0,
+            "FIO4": 0.0,
+            "FIO5": 0.0,
+            "FIO6": 0.0,
+            "FIO7": 0.0,
+        }
+
+
+        self.num_channels = len(self.channels_to_read)
+
+
+
     def run(self):
         try:
-            self.handle = ljm.openS("T7", "ANY", "ANY")
+            #self.handle = ljm.openS("T7", "ETHERNET", "192.168.1.200")
+            self.handle = ljm.openS("T7", "USB", "ANY")
 
             while self._running:
                 # 1. Read from LabJack (This is the "blocking" part)
@@ -37,45 +62,36 @@ class LabJackWorker(QtCore.QObject):
                 #value = 3.14  # Simulated reading
                 results = ljm.eReadNames(self.handle, self.num_channels, self.channels_to_read)
 
-                #pressures
-                pressure0 = results[0]
-                pressure1 = results[1]
-                pressure2 = results[2]
-                pressure3 = results[3]
-                pressure4 = results[4]
-                pressure5 = results[5]
-                pressure6 = results[6]
-
-                #Temps
-                temp12 = results[7]
-                temp13 = results[8]
 
                 # TODO scale pressure values
-                PT_01 = scale_value(pressure0, 0, 24, 0, 24)
-                PT_02 = scale_value(pressure1, 0, 24, 0, 24)
-                PT_03 = scale_value(pressure2, 0, 24, 0, 24)
-                PT_04 = scale_value(pressure3, 0, 24, 0, 24)
-                PT_05 = scale_value(pressure4, 0, 24, 0, 24)
-                PT_06 = scale_value(pressure5, 0, 24, 0, 24)
-                PT_07 = scale_value(pressure6, 0, 24, 0, 24)
+                PT_00 = scale_value(results[0], 0, 5, 0, 1000)
+                PT_01 = scale_value(results[1], 0, 5, 0, 1000)
+                PT_02 = scale_value(results[2], 0, 5, 0, 1000)
+                PT_03 = scale_value(results[3], 0, 5, 0, 1000)
+                PT_04 = scale_value(results[4], 0, 5, 0, 870)
 
-                CH4Temp = scale_value(temp12, 0, 10, -150, 1370)
-                GOXTemp = scale_value(temp13, 0, 10, -150, 1370)
-
-
-
+                TC_15 = scale_value(results[5], 0, 10, -150, 1350)
+                TC_16 = scale_value(results[6], 0, 10, -150, 1350)
 
                 output = {
-                    "CH4Temp": CH4Temp,
-                    "GOXTemp": GOXTemp,
+                    "PT-00": PT_00,
                     "PT-01" : PT_01,
                     "PT-02" : PT_02,
                     "PT-03" : PT_03,
                     "PT-04" : PT_04,
-                    "PT-05" : PT_05,
-                    "PT-06" : PT_06,
-                    "PT-07" : PT_07,
+                    "TC-15": TC_15,
+                    "TC-16": TC_16,
                 }
+
+                GOXMassFlowRate, GOXFlowChoked = calculate_flow(output["PT-00"], output["PT-02"], output["TC-15"], "O2")
+
+                CH4MassFlowRate, CH4FlowChoked = calculate_flow(output["PT-01"], output["PT-03"], output["TC-16"], "CH4")
+                output["GOXMassFlowRate"] = GOXMassFlowRate
+                output["GOXFlowChoked"] = GOXFlowChoked
+
+                output["CH4MassFlowRate"] = CH4MassFlowRate
+                output["CH4FlowChoked"] = CH4FlowChoked
+
 
                 if self.loggingEnabled:
                     self.write_to_csv(list(output.values()))
@@ -85,9 +101,10 @@ class LabJackWorker(QtCore.QObject):
                 self.labjack_signals.emit(output)
 
                 # 3. Frequency of reading (e.g., 10Hz = 0.1)
-                time.sleep(0.004)
+                time.sleep(0.004) #250 Hz
         except Exception as e:
             self.error_occurred.emit(str(e))
+            raise e
 
         finally:
             if self.handle:
@@ -107,6 +124,8 @@ class LabJackWorker(QtCore.QObject):
         try:
             # Direct write to the LabJack (e.g., setting a DAC or Digital Out)
             ljm.eWriteName(self.handle, name, value)
+            self.outputs[name] = value
+
         except Exception as e:
             print(f"Write Error: {e}")
 
@@ -125,7 +144,11 @@ class LabJackWorker(QtCore.QObject):
                 self.csv_writer = csv.writer(self.log_file)
 
                 # 3. Write headers
-                self.csv_writer.writerow(["Timestamp", "CH4Temp", "GOXTemp", "PT-01", "PT-02", "PT-03", "PT-04", "PT-05", "PT-06", "PT-07"])
+                header = ["Timestamp"]
+                header.extend(self.channels_to_read)
+                header.extend(["GOXMassFlowRate", "GOXFlowChoked","CH4MassFlowRate", "CH4FlowChoked" ])
+                header.extend(list(self.outputs.keys()))
+                self.csv_writer.writerow(header)
 
                 # 4. Initialize flush counter
                 self.flush_counter = 0
@@ -150,7 +173,7 @@ class LabJackWorker(QtCore.QObject):
     def write_to_csv(self, data):
         if self.loggingEnabled and self.log_file:
             timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-            output = [timestamp] + data
+            output = [timestamp] + data + list(self.outputs.values())
             self.csv_writer.writerow(output)
 
             # --- FLUSH TIMER LOGIC ---
@@ -170,4 +193,43 @@ def scale_value(voltage, min_in, max_in, min_out, max_out):
     scaled = min_out + ((voltage - min_in) * (max_out - min_out) / (max_in - min_in))
 
     return scaled
+
+
+def calculate_flow(P1_psi, P2_psi, T1_C, gas_type='O2'):
+    import math
+
+    c_d = 0.8
+    T = T1_C + 273.15
+
+    if gas_type == 'O2':
+        y = 1.4
+        A = 5.29e-7
+        R = 259.8
+        rho = 1.429
+    elif gas_type == 'CH4':
+        y = 1.3
+        A = 3.82e-7  # fixed typo
+        R = 519.6
+        rho = 0.717
+    else:
+        raise ValueError(f"Unsupported gas type: {gas_type}")
+
+    if P1_psi < P2_psi:
+        return -1, False
+
+    P1 = P1_psi * 6894.76
+    P2 = P2_psi * 6894.76
+
+    p_critical = P1 * (2 / (y + 1)) ** (y / (y - 1))
+    choked = P2 <= p_critical
+
+    if choked:
+        m_dot = (c_d * A * P1
+                 * math.sqrt(y / (R * T))
+                 * (2 / (y + 1)) ** ((y + 1) / (2 * (y - 1))))
+    else:
+        rho_actual = (P1 / 101325) * rho
+        m_dot = c_d * A * math.sqrt(2 * rho_actual * (P1 - P2))
+
+    return round(m_dot, 4), choked
 

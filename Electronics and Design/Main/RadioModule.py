@@ -4,15 +4,17 @@ from digitalio import DigitalInOut
 import adafruit_rfm9x
 
 class LanderRadio:
-    def __init__(self, freq=915.3):
-        self.spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
-        self.cs = DigitalInOut(board.CE0)
-        self.reset = DigitalInOut(board.D25)
-        self.rfm9x = adafruit_rfm9x.RFM9x(self.spi, self.cs, self.reset, freq)
+    def __init__(self, spi, cs, reset, rfm9x):
+        self.spi = spi
+        self.cs = cs
+        self.reset = reset
+        self.rfm9x = rfm9x
+
         self.rfm9x.tx_power = 23
 
     def send_data(self, message):
         self.rfm9x.send(bytes(message, "utf-8"))
+        print(f"Data sent: {message}")
 
     def check_for_estop(self):
         # Look for a packet without blocking the whole program
